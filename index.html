@@ -343,7 +343,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.4.4</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.5.0</span>
             </button>
         </div>
     </div>
@@ -509,7 +509,8 @@
             }
             if ('audioSession' in navigator) {
                 try {
-                    navigator.audioSession.type = 'playback';
+                    // 'play-and-record' allows simultaneous mic input and speaker output
+                    navigator.audioSession.type = 'play-and-record';
                 } catch(e) {}
             }
         }
@@ -572,20 +573,33 @@
             return new Blob([ab], { type: 'audio/wav' });
         }
 
-        // --- Microphone Authorization & Comms Pipeline ---
-        async function setupCommsPipeline() {
-            initAudio();
+        // --- Robust Microphone Request Pipeline ---
+        async function requestMicStream() {
+            // First attempt low-latency unfiltered capture
             try {
-                authPromptText.textContent = "REQUESTING COMM LINK PERMISSION...";
-                // echoCancellation: false prevents iOS from switching to telephony/earpiece mode!
-                mediaStream = await navigator.mediaDevices.getUserMedia({
+                return await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: false,
                         noiseSuppression: false,
                         autoGainControl: false
                     }
                 });
+            } catch (e1) {
+                console.warn("Low-latency mic constraints rejected, falling back to standard audio:", e1);
+            }
+            // Fallback to standard iOS microphone input
+            return await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
 
+        // --- Microphone Authorization & Comms Pipeline ---
+        async function setupCommsPipeline() {
+            initAudio();
+            try {
+                authPromptText.textContent = "REQUESTING COM LINK PERMISSION...";
+                activateCommsBtn.disabled = true;
+                activateCommsBtn.textContent = "AUTHORIZING...";
+
+                mediaStream = await requestMicStream();
                 voxSourceNode = audioContext.createMediaStreamSource(mediaStream);
 
                 // 1. ScriptProcessor for Push-to-Talk Rolling Buffer
@@ -610,7 +624,7 @@
                 scriptProcessor.connect(silence);
                 silence.connect(audioContext.destination);
 
-                // 2. VOX Real-Time Channel Routing & Bluetooth MediaStream Bridge
+                // 2. VOX Real-Time Channel Routing & Analyser
                 voxAnalyser = audioContext.createAnalyser();
                 voxAnalyser.fftSize = 512;
                 voxSourceNode.connect(voxAnalyser);
@@ -633,12 +647,11 @@
                 voxHpf.connect(voxLpf);
                 voxLpf.connect(liveFilterDist);
                 liveFilterDist.connect(liveGateGain);
-                
-                // Route to both default destination and HTML5 audio element for Bluetooth
-                liveStreamDest = audioContext.createMediaStreamDestination();
                 liveGateGain.connect(audioContext.destination);
-                liveGateGain.connect(liveStreamDest);
 
+                // Bluetooth MediaStream sink
+                liveStreamDest = audioContext.createMediaStreamDestination();
+                liveGateGain.connect(liveStreamDest);
                 if (liveAudioSink) {
                     liveAudioSink.srcObject = liveStreamDest.stream;
                     liveAudioSink.play().catch(() => {});
@@ -649,8 +662,9 @@
                 updateStatus('STANDBY', 'bg-emerald-500');
             } catch (err) {
                 console.error("Mic authorization error:", err);
-                authPromptText.innerHTML = "ACCESS BLOCKED. Tap <span class='text-red-400 font-bold'>'aA'</span> in Safari address bar &rarr; <span class='text-red-400 font-bold'>Website Settings</span> &rarr; enable <span class='text-red-400 font-bold'>Microphone</span>, or proceed to Soundboard below.";
+                activateCommsBtn.disabled = false;
                 activateCommsBtn.textContent = "RETRY PERMISSION";
+                authPromptText.innerHTML = "MIC ACCESS BLOCKED OR DENIED.<br><span class='text-[10px] text-gray-400'>Tap <span class='text-red-400 font-bold'>'aA'</span> in Safari address bar &rarr; <span class='text-red-400 font-bold'>Website Settings</span> &rarr; enable <span class='text-red-400 font-bold'>Microphone</span>, or bypass to Soundboard below.</span>";
             }
         }
 
@@ -987,31 +1001,45 @@
 
                 // Render into WAV buffer
                 const renderedBuffer = await offlineCtx.startRendering();
-                const wavBlob = audioBufferToWavBlob(renderedBuffer);
-                const blobUrl = URL.createObjectURL(wavBlob);
 
-                // Play as native HTML5 Audio (Direct to Bluetooth!)
-                const pttPlayer = new Audio(blobUrl);
-                currentAudio = pttPlayer;
+                // Failsafe Dual-Playback Engine:
+                // 1. Try HTML5 Audio (Routes directly to external Bluetooth speakers)
+                let playedViaHtml5 = false;
+                try {
+                    const wavBlob = audioBufferToWavBlob(renderedBuffer);
+                    const blobUrl = URL.createObjectURL(wavBlob);
+                    const pttPlayer = new Audio(blobUrl);
+                    currentAudio = pttPlayer;
 
-                pttPlayer.onended = () => {
-                    URL.revokeObjectURL(blobUrl);
-                    currentAudio = null;
-                    updateStatus('STANDBY', 'bg-emerald-500');
-                    transmitBtn.disabled = false;
-                };
+                    pttPlayer.onended = () => {
+                        URL.revokeObjectURL(blobUrl);
+                        currentAudio = null;
+                        updateStatus('STANDBY', 'bg-emerald-500');
+                        transmitBtn.disabled = false;
+                    };
 
-                pttPlayer.onerror = () => {
-                    URL.revokeObjectURL(blobUrl);
-                    currentAudio = null;
-                    updateStatus('STANDBY', 'bg-emerald-500');
-                    transmitBtn.disabled = false;
-                };
+                    await pttPlayer.play();
+                    playedViaHtml5 = true;
+                } catch (playErr) {
+                    console.warn("HTML5 audio playback bypassed by Safari, switching to WebAudio:", playErr);
+                }
 
-                await pttPlayer.play();
+                // 2. Direct Web Audio Context Fallback (Guaranteed to play without Safari gesture blocks)
+                if (!playedViaHtml5) {
+                    const bufferSource = audioContext.createBufferSource();
+                    bufferSource.buffer = renderedBuffer;
+                    bufferSource.connect(audioContext.destination);
+
+                    bufferSource.onended = () => {
+                        updateStatus('STANDBY', 'bg-emerald-500');
+                        transmitBtn.disabled = false;
+                    };
+
+                    bufferSource.start(0);
+                }
             } catch (err) {
                 console.error("Playback error:", err);
-                updateStatus('PLAYBACK ERR', 'bg-red-500');
+                updateStatus('STANDBY', 'bg-emerald-500');
                 transmitBtn.disabled = false;
             }
         }
