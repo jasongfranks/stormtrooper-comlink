@@ -171,9 +171,9 @@
                 <div>
                     <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adjusts the pitch of your captured voice (PTT mode only).">
                         <span class="font-mono">Voice Pitch (PTT)</span>
-                        <span id="valPitch" class="font-mono text-red-400">0.95</span>
+                        <span id="valPitch" class="font-mono text-red-400">0.85</span>
                     </div>
-                    <input type="range" id="pitchSlider" min="0.6" max="1.4" step="0.05" value="0.95" class="styled-slider">
+                    <input type="range" id="pitchSlider" min="0.6" max="1.4" step="0.05" value="0.85" class="styled-slider">
                 </div>
 
                 <!-- Distortion Level -->
@@ -203,6 +203,12 @@
                     <input type="range" id="burstSlider" min="0" max="1" step="0.05" value="0.8" class="styled-slider">
                 </div>
 
+                <!-- Live Squelch MP3 Diagnostics Status -->
+                <div class="flex justify-between items-center text-[10px] text-gray-400 pt-1 pb-1 border-b border-red-900/30">
+                    <span class="font-mono">Squelch FX Status</span>
+                    <span id="squelchStatusBadge" class="font-mono text-yellow-400 font-bold">CHECKING MP3S...</span>
+                </div>
+
                 <!-- VOX Specific Sliders -->
                 <div class="pt-2 border-t border-red-900/40">
                     <div class="flex justify-between text-xs text-gray-400 mb-1" title="Threshold volume to trigger VOX live transmission.">
@@ -215,9 +221,9 @@
                 <div>
                     <div class="flex justify-between text-xs text-gray-400 mb-1" title="Silence duration before transmission closes and tail burst plays.">
                         <span class="font-mono">Sentence Pause Hold</span>
-                        <span id="valVoxHold" class="font-mono text-red-400">0.50s</span>
+                        <span id="valVoxHold" class="font-mono text-red-400">0.85s</span>
                     </div>
-                    <input type="range" id="voxHoldSlider" min="0.2" max="1.2" step="0.05" value="0.5" class="styled-slider">
+                    <input type="range" id="voxHoldSlider" min="0.3" max="1.8" step="0.05" value="0.85" class="styled-slider">
                 </div>
 
                 <!-- Reset Button -->
@@ -343,7 +349,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.6.0</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.7.1</span>
             </button>
         </div>
     </div>
@@ -366,16 +372,21 @@
         let isVoxRecording = false;
         let isTransmitting = false;
         let lastSpeechTime = 0;
+        let smoothedDeviation = 0;
         let voxAnalyser = null;
         let voxSourceNode = null;
         let voxAnimFrame = null;
+
+        // Custom Squelch MP3 Files Cache
+        const SQUELCH_FILES = ['pop.mp3', 'hiss.mp3', 'pop2.mp3'];
+        const squelchBuffers = {};
 
         // Zero-Latency PCM Buffer System & Pre-Roll
         let scriptProcessor = null;
         let recordedBuffers = [];
         let voxRecordedBuffers = [];
         let preRollBuffers = [];
-        const PRE_ROLL_MAX = 4; // ~250ms rolling buffer
+        const PRE_ROLL_MAX = 8; // ~500ms rolling buffer
 
         // UI Element References
         const authModal = document.getElementById('authModal');
@@ -416,10 +427,41 @@
         const statusText = document.getElementById('statusText');
         const voxMeterContainer = document.getElementById('voxMeterContainer');
         const voxMeterBar = document.getElementById('voxMeterBar');
+        const squelchStatusBadge = document.getElementById('squelchStatusBadge');
 
         const settingsToggleBtn = document.getElementById('settingsToggleBtn');
         const settingsPanel = document.getElementById('settingsPanel');
         const settingsToggleIcon = document.getElementById('settingsToggleIcon');
+
+        // --- Single Source of Truth for Transmit / VOX Button Text ---
+        function updateComlinkButtonUI() {
+            if (comlinkMode === 'ptt') {
+                if (isRecording) {
+                    transmitBtnTitle.textContent = "RECORDING";
+                    transmitBtnSub.textContent = "RELEASE TO TRANSMIT";
+                } else if (isTransmitting) {
+                    transmitBtnTitle.textContent = "TRANSMITTING";
+                    transmitBtnSub.textContent = "BROADCASTING";
+                } else {
+                    transmitBtnTitle.textContent = "TRANSMIT";
+                    transmitBtnSub.textContent = "PRESS & HOLD";
+                }
+            } else {
+                if (isTransmitting) {
+                    transmitBtnTitle.textContent = "TRANSMITTING";
+                    transmitBtnSub.textContent = "VOX BROADCAST";
+                } else if (isVoxRecording) {
+                    transmitBtnTitle.textContent = "RECORDING";
+                    transmitBtnSub.textContent = "VOX ACTIVE";
+                } else if (isVoxArmed) {
+                    transmitBtnTitle.textContent = "VOX ARMED";
+                    transmitBtnSub.textContent = "TAP TO DISARM";
+                } else {
+                    transmitBtnTitle.textContent = "VOX STANDBY";
+                    transmitBtnSub.textContent = "TAP TO ENGAGE";
+                }
+            }
+        }
 
         // --- Settings Panel Toggle ---
         settingsToggleBtn.addEventListener('click', () => {
@@ -439,8 +481,6 @@
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                 comlinkInstructions.textContent = "HOLD BUTTON TO RECORD • RELEASE TO TRANSMIT";
-                transmitBtnTitle.textContent = "TRANSMIT";
-                transmitBtnSub.textContent = "PRESS & HOLD";
                 voxMeterContainer.classList.add('hidden');
                 disarmVox();
                 updateStatus('STANDBY', 'bg-emerald-500');
@@ -448,11 +488,10 @@
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                 comlinkInstructions.textContent = "TAP COG TO ARM VOX • HANDS-FREE BT TRANSMIT";
-                transmitBtnTitle.textContent = "VOX STANDBY";
-                transmitBtnSub.textContent = "TAP TO ENGAGE";
                 voxMeterContainer.classList.remove('hidden');
                 updateStatus('VOX READY', 'bg-blue-500');
             }
+            updateComlinkButtonUI();
         }
 
         comModePtt.addEventListener('click', () => setComlinkSubMode('ptt'));
@@ -469,6 +508,7 @@
                 if (t.id === mode) {
                     t.tab.className = "tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
                     t.view.style.display = t.display;
+                    if (t.id === 'comlink') updateComlinkButtonUI();
                 } else {
                     t.tab.className = "tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                     t.view.style.display = 'none';
@@ -497,6 +537,116 @@
             if (statusLight) statusLight.className = `w-2.5 h-2.5 rounded-full transition-colors duration-300 ${bgClass}`;
         }
 
+        // --- Resample and Normalize Decoded Audio to Mono (Eliminates WebKit OfflineContext Crashes) ---
+        function normalizeToMonoBuffer(ctx, decodedBuffer) {
+            if (!decodedBuffer) return null;
+            const targetSampleRate = ctx.sampleRate;
+            const duration = decodedBuffer.duration;
+            const targetLength = Math.max(1, Math.round(duration * targetSampleRate));
+            const monoBuffer = ctx.createBuffer(1, targetLength, targetSampleRate);
+            const monoData = monoBuffer.getChannelData(0);
+
+            const numChannels = decodedBuffer.numberOfChannels;
+            const srcLen = decodedBuffer.length;
+            const channelPointers = [];
+            for (let c = 0; c < numChannels; c++) {
+                channelPointers.push(decodedBuffer.getChannelData(c));
+            }
+
+            // High-quality linear interpolation resampling & downmixing to mono
+            const ratio = (srcLen - 1) / Math.max(1, targetLength - 1);
+            for (let i = 0; i < targetLength; i++) {
+                const srcPos = i * ratio;
+                const i0 = Math.floor(srcPos);
+                const i1 = Math.min(srcLen - 1, i0 + 1);
+                const frac = srcPos - i0;
+
+                let sample = 0;
+                for (let c = 0; c < numChannels; c++) {
+                    const ch = channelPointers[c];
+                    const s = ch[i0] + (ch[i1] - ch[i0]) * frac;
+                    sample += s;
+                }
+                monoData[i] = sample / numChannels;
+            }
+            return monoBuffer;
+        }
+
+        // --- Case-Insensitive Multi-Host Squelch MP3 Loader ---
+        async function loadSquelchBuffer(fileName) {
+            if (squelchBuffers[fileName]) return squelchBuffers[fileName];
+            if (!audioContext) return null;
+
+            // Generate case variants for Linux GitHub Pages compatibility
+            const baseName = fileName.replace(/\.mp3$/i, '');
+            const variants = [
+                fileName,
+                fileName.toLowerCase(),
+                baseName.charAt(0).toUpperCase() + baseName.slice(1) + '.mp3',
+                fileName.toUpperCase(),
+                baseName.replace(/2/, ' 2') + '.mp3',
+                baseName.replace(/2/, '_2') + '.mp3'
+            ];
+            const uniqueVariants = Array.from(new Set(variants));
+
+            const candidateUrls = [];
+            uniqueVariants.forEach(v => {
+                candidateUrls.push('https://jasongfranks.github.io/stormtrooper-comlink/' + encodeURI(v));
+                candidateUrls.push('./' + encodeURI(v));
+                candidateUrls.push(encodeURI(v));
+                candidateUrls.push('https://raw.githubusercontent.com/jasongfranks/stormtrooper-comlink/main/' + encodeURI(v));
+                candidateUrls.push('https://raw.githubusercontent.com/jasongfranks/stormtrooper-comlink/master/' + encodeURI(v));
+            });
+
+            for (const url of candidateUrls) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const arrayBuf = await res.arrayBuffer();
+                    if (!arrayBuf || arrayBuf.byteLength === 0) continue;
+
+                    // Safari-safe decode (handles promise + callback)
+                    const rawDecoded = await new Promise((resolve, reject) => {
+                        const copy = arrayBuf.slice(0);
+                        audioContext.decodeAudioData(copy, resolve, (err) => {
+                            audioContext.decodeAudioData(arrayBuf, resolve, reject);
+                        });
+                    });
+
+                    if (rawDecoded) {
+                        const normalized = normalizeToMonoBuffer(audioContext, rawDecoded);
+                        squelchBuffers[fileName] = normalized;
+                        updateSquelchDiagnostics();
+                        return normalized;
+                    }
+                } catch (e) {
+                    // Try next candidate
+                }
+            }
+            return null;
+        }
+
+        async function preloadAllSquelchSounds() {
+            if (!audioContext) return;
+            await Promise.all(SQUELCH_FILES.map(f => loadSquelchBuffer(f)));
+            updateSquelchDiagnostics();
+        }
+
+        function updateSquelchDiagnostics() {
+            if (!squelchStatusBadge) return;
+            const loaded = SQUELCH_FILES.filter(f => !!squelchBuffers[f]);
+            if (loaded.length === SQUELCH_FILES.length) {
+                squelchStatusBadge.textContent = "MP3 FX READY (3/3)";
+                squelchStatusBadge.className = "font-mono text-emerald-400 font-bold";
+            } else if (loaded.length > 0) {
+                squelchStatusBadge.textContent = `MP3 PARTIAL (${loaded.length}/${SQUELCH_FILES.length})`;
+                squelchStatusBadge.className = "font-mono text-yellow-400 font-bold";
+            } else {
+                squelchStatusBadge.textContent = "SYNTH BURST ACTIVE";
+                squelchStatusBadge.className = "font-mono text-orange-400 font-bold";
+            }
+        }
+
         // --- Audio Initializer (Unlocks iOS AudioContext on Touch) ---
         function initAudio() {
             if (!audioContext) {
@@ -511,6 +661,7 @@
                     navigator.audioSession.type = 'play-and-record';
                 } catch(e) {}
             }
+            preloadAllSquelchSounds();
         }
 
         // --- Prime HTML5 Audio Element for iOS Safari Bluetooth Routing ---
@@ -664,7 +815,7 @@
             });
         }
 
-        // --- Offline Burst Synthesizer for Radio Clicks & Squelch Tails ---
+        // --- Offline Burst Synthesizer for Radio Clicks & Squelch Tails (Fallback) ---
         function renderBurstIntoOffline(ctx, type, time, burstMult, userLength) {
             const isPopHiss = type === 'start' ? false : (Math.random() < 0.5);
             const duration = isPopHiss ? (userLength + 0.1) : (type === 'start' ? 0.08 : 0.14);
@@ -698,21 +849,17 @@
                 hpf.connect(lpf);
                 lpf.connect(gainNode);
             } else {
-                const bp = ctx.createBiquadFilter();
-                bp.type = 'bandpass';
-                bp.frequency.setValueAtTime(1800, time);
-                bp.Q.setValueAtTime(4.0, time);
-
-                const dist = ctx.createWaveShaper();
-                dist.curve = makeDistortionCurve(15);
+                const bpf = ctx.createBiquadFilter();
+                bpf.type = 'bandpass';
+                bpf.frequency.setValueAtTime(type === 'start' ? 1400 : 1800, time);
+                bpf.Q.setValueAtTime(3.0, time);
 
                 gainNode.gain.setValueAtTime(0.0001, time);
-                gainNode.gain.linearRampToValueAtTime(0.42 * burstMult, time + 0.003);
+                gainNode.gain.linearRampToValueAtTime(0.35 * burstMult, time + 0.003);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, time + duration);
 
-                noiseSource.connect(bp);
-                bp.connect(dist);
-                dist.connect(gainNode);
+                noiseSource.connect(bpf);
+                bpf.connect(gainNode);
             }
 
             gainNode.connect(ctx.destination);
@@ -733,40 +880,47 @@
             voxAnalyser.getByteTimeDomainData(buffer);
 
             // Compute peak amplitude
-            let maxDeviation = 0;
+            let peakDev = 0;
             for (let i = 0; i < buffer.length; i++) {
-                const deviation = Math.abs(buffer[i] - 128);
-                if (deviation > maxDeviation) maxDeviation = deviation;
+                const dev = Math.abs(buffer[i] - 128);
+                if (dev > peakDev) peakDev = dev;
             }
+
+            // Leaky speech energy follower: instant attack, smooth decay
+            smoothedDeviation = Math.max(peakDev, smoothedDeviation * 0.85);
 
             const threshold = parseFloat(voxSensSlider.value);
             const holdTimeMs = parseFloat(voxHoldSlider.value) * 1000;
             const now = performance.now();
 
+            // Hysteresis keep-alive: once speech starts, quiet syllables keep the channel open
+            const activeThreshold = isVoxRecording ? (threshold * 0.48) : threshold;
+
             // Update HUD Speech Energy Meter
-            const meterPct = Math.min(100, Math.round((maxDeviation / 64) * 100));
+            const meterPct = Math.min(100, Math.round((smoothedDeviation / 64) * 100));
             voxMeterBar.style.width = `${meterPct}%`;
-            voxMeterBar.className = maxDeviation > threshold 
+            voxMeterBar.className = smoothedDeviation > activeThreshold 
                 ? 'h-full bg-red-500 transition-all duration-75 shadow-[0_0_8px_rgba(239,68,68,0.8)]' 
                 : 'h-full bg-gray-600 transition-all duration-75';
 
-            if (maxDeviation > threshold) {
+            if (smoothedDeviation > activeThreshold) {
                 lastSpeechTime = now;
                 if (!isVoxRecording) {
                     isVoxRecording = true;
-                    // Prepend pre-roll buffer so starting consonants are never cut off
+                    // Prepend rolling pre-roll buffer so starting consonants are never cut off
                     voxRecordedBuffers = [...preRollBuffers];
                     updateStatus('VOX RECORDING...', 'bg-red-600 animate-pulse');
-                    transmitBtnTitle.textContent = "RECORDING";
+                    updateComlinkButtonUI();
                     transmitBtn.classList.add('scale-95');
                 }
             } else {
-                // If user finished their sentence and paused beyond threshold, transmit immediately
+                // Wait for complete sentence pause hold duration before closing transmission
                 if (isVoxRecording && (now - lastSpeechTime > holdTimeMs)) {
                     isVoxRecording = false;
                     transmitBtn.classList.remove('scale-95');
                     const captured = [...voxRecordedBuffers];
                     voxRecordedBuffers = [];
+                    updateComlinkButtonUI();
                     processAndTransmitVox(captured);
                 }
             }
@@ -782,9 +936,9 @@
             isVoxRecording = false;
             isTransmitting = false;
             lastSpeechTime = 0;
-            transmitBtnTitle.textContent = "VOX ARMED";
-            transmitBtnSub.textContent = "TAP TO DISARM";
+            smoothedDeviation = 0;
             updateStatus('VOX LISTENING', 'bg-emerald-500');
+            updateComlinkButtonUI();
             voxAnimFrame = requestAnimationFrame(runVoxLoop);
         }
 
@@ -796,27 +950,24 @@
             if (voxAnimFrame) cancelAnimationFrame(voxAnimFrame);
             voxMeterBar.style.width = '0%';
             if (comlinkMode === 'vox') {
-                transmitBtnTitle.textContent = "VOX STANDBY";
-                transmitBtnSub.textContent = "TAP TO ENGAGE";
                 updateStatus('VOX READY', 'bg-blue-500');
             }
+            updateComlinkButtonUI();
         }
 
         // --- Process Voice & Transmit to Bluetooth Speaker ---
         function processAndTransmitVox(buffers) {
             if (!buffers || buffers.length === 0) {
-                updateStatus('VOX LISTENING', 'bg-emerald-500');
-                transmitBtnTitle.textContent = "VOX ARMED";
+                updateComlinkButtonUI();
                 return;
             }
 
             let totalSamples = 0;
             for (let b of buffers) totalSamples += b.length;
 
-            // Discard negligible noise bumps (< 0.2s)
-            if (totalSamples < audioContext.sampleRate * 0.2) {
-                updateStatus('VOX LISTENING', 'bg-emerald-500');
-                transmitBtnTitle.textContent = "VOX ARMED";
+            // Discard negligible noise bumps (< 0.25s)
+            if (totalSamples < audioContext.sampleRate * 0.25) {
+                updateComlinkButtonUI();
                 return;
             }
 
@@ -828,15 +979,14 @@
                 offset += b.length;
             }
 
-            transmitBtnTitle.textContent = "TRANSMITTING";
+            updateComlinkButtonUI();
             playTransmittedAudio(audioBuffer, () => {
                 if (isVoxArmed) {
                     updateStatus('VOX LISTENING', 'bg-emerald-500');
-                    transmitBtnTitle.textContent = "VOX ARMED";
                 } else {
                     updateStatus('VOX READY', 'bg-blue-500');
-                    transmitBtnTitle.textContent = "VOX STANDBY";
                 }
+                updateComlinkButtonUI();
             });
         }
 
@@ -850,6 +1000,7 @@
             isRecording = true;
 
             updateStatus('RECORDING...', 'bg-red-600 animate-pulse');
+            updateComlinkButtonUI();
             transmitBtn.classList.add('scale-95');
         }
 
@@ -859,6 +1010,7 @@
             transmitBtn.classList.remove('scale-95');
             updateStatus('PROCESSING...', 'bg-yellow-500');
             transmitBtn.disabled = true;
+            updateComlinkButtonUI();
 
             processAndPlayPCM(recordedBuffers);
         }
@@ -867,6 +1019,7 @@
             if (!buffers || buffers.length === 0) {
                 updateStatus('STANDBY', 'bg-emerald-500');
                 transmitBtn.disabled = false;
+                updateComlinkButtonUI();
                 return;
             }
 
@@ -876,6 +1029,7 @@
             if (totalSamples < audioContext.sampleRate * 0.2) {
                 updateStatus('STANDBY', 'bg-emerald-500');
                 transmitBtn.disabled = false;
+                updateComlinkButtonUI();
                 return;
             }
 
@@ -890,6 +1044,7 @@
             playTransmittedAudio(audioBuffer, () => {
                 updateStatus('STANDBY', 'bg-emerald-500');
                 transmitBtn.disabled = false;
+                updateComlinkButtonUI();
             });
         }
 
@@ -898,25 +1053,54 @@
             try {
                 isTransmitting = true;
                 updateStatus('TRANSMITTING...', 'bg-green-600');
+                updateComlinkButtonUI();
+
                 const pitch = parseFloat(pitchSlider.value);
                 const distAmt = parseFloat(distSlider.value);
                 const burstMult = parseFloat(burstSlider.value);
                 const userLen = parseFloat(lengthSlider.value);
 
+                // Start squelch: randomize between pop.mp3 and pop2.mp3 (with on-demand load)
+                const startPool = ['pop.mp3', 'pop2.mp3'];
+                const chosenStartFile = startPool[Math.floor(Math.random() * startPool.length)];
+                let startBuf = squelchBuffers[chosenStartFile];
+                if (!startBuf) {
+                    startBuf = await loadSquelchBuffer(chosenStartFile);
+                }
+
+                // End squelch: randomize between hiss.mp3, pop.mp3, and pop2.mp3 (with on-demand load)
+                const endPool = ['hiss.mp3', 'pop.mp3', 'pop2.mp3'];
+                const chosenEndFile = endPool[Math.floor(Math.random() * endPool.length)];
+                let endBuf = squelchBuffers[chosenEndFile];
+                if (!endBuf) {
+                    endBuf = await loadSquelchBuffer(chosenEndFile);
+                }
+
+                const startBurstDur = startBuf ? startBuf.duration : 0.08;
                 const voiceDuration = audioBuffer.duration / pitch;
-                const startBurstDur = 0.08;
-                const endBurstDur = userLen + 0.1;
-                const totalDuration = startBurstDur * 0.7 + voiceDuration + endBurstDur + 0.1;
+                const voiceStart = startBuf ? Math.max(0.04, startBurstDur * 0.85) : (startBurstDur * 0.7);
+                const voiceEnd = voiceStart + voiceDuration;
+                const endBurstDur = endBuf ? endBuf.duration : (userLen + 0.1);
+                const totalDuration = voiceEnd + endBurstDur + 0.15;
 
                 const sampleRate = audioContext.sampleRate;
                 const OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
                 const offlineCtx = new OfflineContextClass(1, Math.ceil(sampleRate * totalDuration), sampleRate);
 
-                // 1. Start Radio Click Burst
-                renderBurstIntoOffline(offlineCtx, 'start', 0, burstMult, userLen);
+                // 1. Start Radio Click Burst (Custom MP3 or Synthesized Fallback)
+                if (startBuf) {
+                    const sSource = offlineCtx.createBufferSource();
+                    sSource.buffer = startBuf;
+                    const sGain = offlineCtx.createGain();
+                    sGain.gain.setValueAtTime(burstMult * 1.5, 0); // 1.5x makeup gain for punchy presence
+                    sSource.connect(sGain);
+                    sGain.connect(offlineCtx.destination);
+                    sSource.start(0);
+                } else {
+                    renderBurstIntoOffline(offlineCtx, 'start', 0, burstMult, userLen);
+                }
 
                 // 2. Modulated Voice
-                const voiceStart = startBurstDur * 0.7;
                 const source = offlineCtx.createBufferSource();
                 source.buffer = audioBuffer;
                 source.playbackRate.value = pitch;
@@ -951,9 +1135,18 @@
 
                 source.start(voiceStart);
 
-                // 3. Ending Squelch Burst
-                const voiceEnd = voiceStart + voiceDuration;
-                renderBurstIntoOffline(offlineCtx, 'end', voiceEnd, burstMult, userLen);
+                // 3. Ending Squelch Burst (Custom MP3 or Synthesized Fallback)
+                if (endBuf) {
+                    const eSource = offlineCtx.createBufferSource();
+                    eSource.buffer = endBuf;
+                    const eGain = offlineCtx.createGain();
+                    eGain.gain.setValueAtTime(burstMult * 1.5, voiceEnd); // 1.5x makeup gain for punchy presence
+                    eSource.connect(eGain);
+                    eGain.connect(offlineCtx.destination);
+                    eSource.start(voiceEnd);
+                } else {
+                    renderBurstIntoOffline(offlineCtx, 'end', voiceEnd, burstMult, userLen);
+                }
 
                 // Render into WAV buffer
                 const renderedBuffer = await offlineCtx.startRendering();
@@ -965,6 +1158,7 @@
                     currentAudio = null;
                     isTransmitting = false;
                     preRollBuffers = []; // Clear pre-roll to prevent acoustic bleed
+                    updateComlinkButtonUI();
                     if (onDone) onDone();
                 };
 
@@ -986,6 +1180,7 @@
                 console.error("Playback error:", err);
                 currentAudio = null;
                 isTransmitting = false;
+                updateComlinkButtonUI();
                 if (onDone) onDone();
             }
         }
@@ -1418,16 +1613,16 @@
         resetBtn.addEventListener('click', () => {
             distSlider.value = 10;
             valDist.textContent = '10';
-            pitchSlider.value = 0.95;
-            valPitch.textContent = '0.95';
+            pitchSlider.value = 0.85;
+            valPitch.textContent = '0.85';
             lengthSlider.value = 0.4;
             valLength.textContent = '0.40s';
             burstSlider.value = 0.8;
             valBurst.textContent = '80%';
             voxSensSlider.value = 25;
             valVoxSens.textContent = '25';
-            voxHoldSlider.value = 0.45;
-            valVoxHold.textContent = '0.45s';
+            voxHoldSlider.value = 0.85;
+            valVoxHold.textContent = '0.85s';
         });
 
         // Initialize joystick pods on load
