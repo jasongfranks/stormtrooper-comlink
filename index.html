@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- iOS Web App & Home Screen Icon Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Comlink">
+    <link rel="apple-touch-icon" href="https://jasongfranks.github.io/stormtrooper-comlink/inferno.jpg">
+    <link rel="icon" type="image/jpeg" href="https://jasongfranks.github.io/stormtrooper-comlink/inferno.jpg">
+
     <title>Imperial Comlink & Soundboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -184,11 +192,20 @@
                 </div>
             </div>
 
-            <!-- Glove-Friendly Transmit Button (Massive) -->
+            <!-- Glove-Friendly Transmit Button (Massive Imperial Cog) -->
             <div class="flex-1 flex items-center justify-center min-h-[200px]">
-                <button id="transmitBtn" type="button" class="tab-btn w-full max-w-[280px] sm:max-w-[320px] aspect-square mx-auto rounded-full border-4 border-red-600 bg-red-950/40 text-red-400 hover:text-white flex flex-col items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 transition-all duration-150">
-                    <span class="orbitron font-black text-2xl sm:text-3xl tracking-widest text-center px-2">TRANSMIT</span>
-                    <span class="text-[10px] sm:text-xs tracking-widest font-mono text-red-400/80 mt-2 uppercase">PRESS & HOLD</span>
+                <button id="transmitBtn" type="button" class="group relative tab-btn w-full max-w-[280px] sm:max-w-[320px] aspect-square mx-auto flex flex-col items-center justify-center rounded-full active:scale-95 transition-all duration-150 outline-none select-none">
+                    
+                    <!-- Official Imperial Crest Image Mask -->
+                    <div class="absolute inset-0 w-full h-full text-red-600/80 group-hover:text-red-500 group-active:text-red-500 drop-shadow-[0_0_20px_rgba(220,38,38,0.4)] group-active:drop-shadow-[0_0_35px_rgba(220,38,38,0.9)] transition-all duration-150 z-0 pointer-events-none"
+                         style="-webkit-mask-image: url('https://jasongfranks.github.io/stormtrooper-comlink/imperialcog.webp'); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; background-color: currentColor; mask-image: url('https://jasongfranks.github.io/stormtrooper-comlink/imperialcog.webp'); mask-size: contain; mask-position: center; mask-repeat: no-repeat;">
+                    </div>
+
+                    <!-- Text Overlay Container -->
+                    <div class="relative z-10 flex flex-col items-center justify-center bg-[#121316]/80 backdrop-blur-sm px-6 py-4 rounded-full border border-red-900/60 shadow-[0_0_15px_rgba(0,0,0,0.8)] group-active:bg-red-900/70 group-active:border-red-500/80 transition-all duration-150 pointer-events-none">
+                        <span class="orbitron font-black text-2xl sm:text-3xl tracking-widest text-center px-2 text-red-400 group-active:text-white group-hover:text-red-300">TRANSMIT</span>
+                        <span class="text-[10px] sm:text-xs tracking-widest font-mono text-red-400/80 mt-2 uppercase group-active:text-red-200">PRESS & HOLD</span>
+                    </div>
                 </button>
             </div>
         </section>
@@ -274,12 +291,17 @@
         <!-- Centered Version Tracker & Imperial ID Footer -->
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <span class="text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                SYS VER // <span class="text-red-400 font-bold">v2.4.0</span>
+                SYS VER // <span class="text-red-400 font-bold">v3.1.0</span>
             </span>
         </div>
     </div>
 
     <script>
+        // --- Prevent iOS Pinch Zoom & Double Tap ---
+        document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+        document.addEventListener('gesturechange', function (e) { e.preventDefault(); });
+        document.addEventListener('gestureend', function (e) { e.preventDefault(); });
+
         // --- Core Audio State ---
         let audioContext = null;
         let mediaStream = null;
@@ -307,13 +329,11 @@
         const pitchSlider = document.getElementById('pitchSlider');
         const lengthSlider = document.getElementById('lengthSlider');
         const burstSlider = document.getElementById('burstSlider');
-        const soundboardVolSlider = document.getElementById('soundboardVolSlider');
 
         const valDist = document.getElementById('valDist');
         const valPitch = document.getElementById('valPitch');
         const valLength = document.getElementById('valLength');
         const valBurst = document.getElementById('valBurst');
-        const valSoundboardVol = document.getElementById('valSoundboardVol');
 
         const resetBtn = document.getElementById('resetBtn');
         const transmitBtn = document.getElementById('transmitBtn');
@@ -521,13 +541,13 @@
             isRecording = true;
 
             updateStatus('RECORDING...', 'bg-red-600 animate-pulse');
-            transmitBtn.classList.add('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
+            transmitBtn.classList.add('scale-95');
         }
 
         function stopRecording() {
             if (!isRecording) return;
             isRecording = false;
-            transmitBtn.classList.remove('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
+            transmitBtn.classList.remove('scale-95');
             updateStatus('PROCESSING...', 'bg-yellow-500');
             transmitBtn.disabled = true;
 
@@ -593,10 +613,12 @@
                 const makeUpGain = audioContext.createGain();
                 makeUpGain.gain.value = 2.0;
 
+                // Routing Path
                 source.connect(highpass);
                 highpass.connect(lowpass);
                 lowpass.connect(distortion);
                 distortion.connect(compressor);
+                
                 compressor.connect(makeUpGain);
                 makeUpGain.connect(audioContext.destination);
 
