@@ -7,11 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: auto;
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #080808;
             color: #d1d5db;
-            touch-action: pan-y;
+            touch-action: none;
             -webkit-tap-highlight-color: transparent;
         }
         .orbitron {
@@ -71,11 +79,11 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-3 sm:p-6 bg-gradient-to-b from-[#111111] via-[#09090b] to-[#000000] selection:bg-red-900 selection:text-white">
+<body class="h-full w-full flex items-center justify-center p-2 sm:p-4 bg-gradient-to-b from-[#111111] via-[#09090b] to-[#000000] selection:bg-red-900 selection:text-white overflow-hidden">
     <div class="scanlines"></div>
 
     <!-- Main Container Frame -->
-    <div class="w-full max-w-lg bg-[#121316] border border-red-900/40 rounded-2xl p-4 sm:p-6 shadow-[0_0_40px_rgba(220,38,38,0.15)] relative overflow-hidden backdrop-blur-md text-center">
+    <div class="w-full max-w-lg h-[98dvh] max-h-[760px] bg-[#121316] border border-red-900/40 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(220,38,38,0.15)] relative flex flex-col justify-between backdrop-blur-md text-center overflow-hidden">
         <!-- Mic Authorization Overlay Modal -->
         <div id="authModal" class="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
             <div class="w-16 h-16 rounded-full border-2 border-red-500/80 bg-red-950/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)]">
@@ -90,72 +98,63 @@
             </button>
         </div>
 
-        <!-- Top Status Bar -->
-        <div class="flex items-center justify-between border-b border-red-900/30 pb-3 mb-4 text-[11px] font-mono tracking-widest text-red-500/80">
-            <span>UNIT // TK-714</span>
-            <span class="flex items-center gap-1.5">
-                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                ONLINE
-            </span>
-        </div>
+        <div>
+            <!-- Top Status Bar -->
+            <div class="flex items-center justify-between border-b border-red-900/30 pb-2 mb-2 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/80">
+                <span>UNIT // TK-714</span>
+                <span class="flex items-center gap-1.5">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    ONLINE
+                </span>
+            </div>
 
-        <h1 class="text-3xl sm:text-4xl font-black tracking-widest text-red-500 uppercase mb-1 orbitron drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] mt-1">
-            Comlink
-        </h1>
-        <p class="text-gray-400 text-xs sm:text-sm mb-5 uppercase tracking-widest border-b border-red-900/30 pb-3">Imperial Security Audio Console</p>
-
-        <!-- Mode Navigation Switcher -->
-        <div class="grid grid-cols-2 gap-2 p-1.5 bg-black/60 rounded-xl border border-red-900/40 mb-6 relative z-20">
-            <button id="tabComlink" type="button" class="tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
-                COMLINK
-            </button>
-            <button id="tabSoundboard" type="button" class="tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
-                SOUNDBOARD
-            </button>
+            <!-- Mode Navigation Switcher (3 Tabs) -->
+            <div class="grid grid-cols-3 gap-1.5 p-1 bg-black/60 rounded-xl border border-red-900/40 mb-3 relative z-20">
+                <button id="tabComlink" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
+                    COMLINK
+                </button>
+                <button id="tabJoystick" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
+                    JOYSTICK
+                </button>
+                <button id="tabSoundboard" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
+                    BOARD
+                </button>
+            </div>
         </div>
 
         <!-- ================= MODE 1: COMLINK ================= -->
-        <section id="viewComlink" style="display: block;">
+        <section id="viewComlink" style="display: none;" class="flex-1 overflow-y-auto pr-1">
             <!-- Instruction Notice -->
-            <div class="text-red-400 text-xs mb-4 orbitron bg-red-950/30 p-2.5 rounded-lg border border-red-900/40">
+            <div class="text-red-400 text-xs mb-3 orbitron bg-red-950/30 p-2 rounded-lg border border-red-900/40">
                 HOLD BUTTON TO RECORD • RELEASE TO TRANSMIT
             </div>
 
-            <!-- Comlink Master Volume Slider -->
-            <div class="mb-4 bg-black/40 p-3 rounded-xl border border-red-900/30 text-left">
-                <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls master output volume for your modulated voice and radio bursts.">
-                    <span class="cursor-help flex items-center gap-1 font-mono">Comlink Master Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                    <span id="valComlinkVol" class="font-mono text-red-400">40%</span>
-                </div>
-                <input type="range" id="comlinkVolSlider" min="0" max="1" step="0.05" value="0.4" class="styled-slider">
-            </div>
-
             <!-- Status Display -->
-            <div id="statusDisplay" class="h-10 mb-4 flex items-center justify-center">
-                <div class="flex items-center space-x-2 bg-black/40 px-4 py-1.5 rounded-full border border-red-900/40">
-                    <span id="statusLight" class="w-3 h-3 rounded-full bg-gray-500 transition-colors duration-300"></span>
+            <div id="statusDisplay" class="h-9 mb-3 flex items-center justify-center">
+                <div class="flex items-center space-x-2 bg-black/40 px-4 py-1 rounded-full border border-red-900/40">
+                    <span id="statusLight" class="w-2.5 h-2.5 rounded-full bg-gray-500 transition-colors duration-300"></span>
                     <span id="statusText" class="orbitron text-xs tracking-wider text-gray-300 uppercase">STANDBY</span>
                 </div>
             </div>
 
             <!-- Glove-Friendly Transmit Button -->
-            <div class="mb-6 flex justify-center">
-                <button id="transmitBtn" type="button" class="tab-btn w-44 h-44 sm:w-48 sm:h-48 rounded-full border-4 border-red-600 bg-red-950/40 text-red-400 hover:text-white flex flex-col items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 transition-all duration-150">
-                    <span class="orbitron font-black text-xl sm:text-2xl tracking-widest text-center px-2">TRANSMIT</span>
-                    <span class="text-[10px] tracking-widest font-mono text-red-400/80 mt-1 uppercase">PRESS & HOLD</span>
+            <div class="mb-4 flex justify-center">
+                <button id="transmitBtn" type="button" class="tab-btn w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-red-600 bg-red-950/40 text-red-400 hover:text-white flex flex-col items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 transition-all duration-150">
+                    <span class="orbitron font-black text-lg sm:text-xl tracking-widest text-center px-2">TRANSMIT</span>
+                    <span class="text-[9px] tracking-widest font-mono text-red-400/80 mt-1 uppercase">PRESS & HOLD</span>
                 </button>
             </div>
 
             <!-- Settings Panel -->
-            <div class="bg-black/40 p-4 rounded-xl border border-red-900/30 text-left space-y-4">
-                <div class="border-b border-red-900/30 pb-2">
-                    <h2 class="orbitron text-xs font-bold text-red-400 uppercase tracking-wider">Acoustic Modulation Parameters</h2>
+            <div class="bg-black/40 p-3 sm:p-4 rounded-xl border border-red-900/30 text-left space-y-3">
+                <div class="border-b border-red-900/30 pb-1.5">
+                    <h2 class="orbitron text-[11px] font-bold text-red-400 uppercase tracking-wider">Acoustic Modulation Parameters</h2>
                 </div>
 
                 <!-- Voice Pitch -->
                 <div>
-                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adjusts the pitch of your captured voice. Set below 1.0 for an authoritative, deeper trooper vocal tone.">
-                        <span class="cursor-help flex items-center gap-1 font-mono">Voice Pitch <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adjusts the pitch of your captured voice.">
+                        <span class="font-mono">Voice Pitch</span>
                         <span id="valPitch" class="font-mono text-red-400">0.95</span>
                     </div>
                     <input type="range" id="pitchSlider" min="0.6" max="1.4" step="0.05" value="0.95" class="styled-slider">
@@ -163,8 +162,8 @@
 
                 <!-- Distortion Level -->
                 <div>
-                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adds analog radio harmonics and clipping to give your voice a gritty, in-helmet sound.">
-                        <span class="cursor-help flex items-center gap-1 font-mono">Distortion (Clipping) <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adds analog radio harmonics and clipping.">
+                        <span class="font-mono">Distortion (Clipping)</span>
                         <span id="valDist" class="font-mono text-red-400">10</span>
                     </div>
                     <input type="range" id="distSlider" min="0" max="100" step="5" value="10" class="styled-slider">
@@ -172,8 +171,8 @@
 
                 <!-- Static Squelch Burst Length -->
                 <div>
-                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Sets the duration of the radio pop and squelch noise played before and after speaking.">
-                        <span class="cursor-help flex items-center gap-1 font-mono">Burst Length <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Sets the duration of the radio pop and squelch noise.">
+                        <span class="font-mono">Burst Length</span>
                         <span id="valLength" class="font-mono text-red-400">0.40s</span>
                     </div>
                     <input type="range" id="lengthSlider" min="0.1" max="0.8" step="0.05" value="0.4" class="styled-slider">
@@ -181,57 +180,121 @@
 
                 <!-- Radio Burst Volume -->
                 <div>
-                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Controls how loudly the transmission clicks, pops, and squelches sound relative to your voice.">
-                        <span class="cursor-help flex items-center gap-1 font-mono">Burst Volume <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Controls how loudly the transmission clicks and squelches sound.">
+                        <span class="font-mono">Burst Volume</span>
                         <span id="valBurst" class="font-mono text-red-400">80%</span>
                     </div>
                     <input type="range" id="burstSlider" min="0" max="1" step="0.05" value="0.8" class="styled-slider">
                 </div>
 
                 <!-- Reset Button -->
-                <button id="resetBtn" type="button" class="mt-4 w-full orbitron text-xs tracking-widest text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 py-2.5 rounded-lg transition-colors duration-200 uppercase cursor-pointer">
+                <button id="resetBtn" type="button" class="mt-3 w-full orbitron text-xs tracking-widest text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 py-2 rounded-lg transition-colors duration-200 uppercase cursor-pointer">
                     Reset Defaults
                 </button>
+            </div>
+        </section>
 
-                <!-- Centered Version Tracker -->
-                <div class="mt-3 text-center">
-                    <span class="text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                        SYS VER // <span class="text-red-400 font-bold">v1.4.0</span>
-                    </span>
+        <!-- ================= MODE 2: JOYSTICK (FULL SCREEN RADIAL RADAR) ================= -->
+        <section id="viewJoystick" style="display: flex;" class="flex-1 flex-col justify-between overflow-hidden select-none">
+            <!-- Active Target / Transmission HUD -->
+            <div class="h-9 mb-1 flex items-center justify-center bg-black/60 rounded-xl border border-red-900/40 px-3 shrink-0">
+                <span id="joyHud" class="orbitron text-xs font-bold text-red-500/90 tracking-wider truncate">[ RADIAL // READY ]</span>
+            </div>
+
+            <!-- Central Radial Radar Arena (Fills Space, No Scroll) -->
+            <div id="joystickArena" class="relative w-full max-w-[340px] aspect-square mx-auto my-auto flex items-center justify-center select-none" style="touch-action: none;">
+                <!-- Radar Visual Backgrounds (Imperial Red Theme) -->
+                <div class="absolute inset-2 rounded-full border-2 border-red-900/30 pointer-events-none"></div>
+                <div class="absolute w-44 h-44 rounded-full border border-red-900/40 pointer-events-none"></div>
+                <div class="absolute w-20 h-20 rounded-full border border-dashed border-red-600/40 pointer-events-none"></div>
+                <div class="absolute w-full h-px bg-red-900/20 pointer-events-none"></div>
+                <div class="absolute h-full w-px bg-red-900/20 pointer-events-none"></div>
+
+                <!-- 8 Permanent Radial Sayings (Clockwise from North) -->
+                <!-- 1. North: There's no one here -->
+                <div id="joyPod0" class="joy-pod absolute top-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    1. NO ONE HERE
+                </div>
+
+                <!-- 2. North-East: Let me see your ID -->
+                <div id="joyPod1" class="joy-pod absolute top-7 right-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    2. SEE YOUR ID
+                </div>
+
+                <!-- 3. East: We don't need to see ID -->
+                <div id="joyPod2" class="joy-pod absolute top-1/2 right-0 -translate-y-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    3. DON'T NEED ID
+                </div>
+
+                <!-- 4. South-East: Move along, move along -->
+                <div id="joyPod3" class="joy-pod absolute bottom-7 right-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    4. MOVE ALONG
+                </div>
+
+                <!-- 5. South: Look there! -->
+                <div id="joyPod4" class="joy-pod absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    5. LOOK THERE!
+                </div>
+
+                <!-- 6. South-West: Follow me -->
+                <div id="joyPod5" class="joy-pod absolute bottom-7 left-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    6. FOLLOW ME
+                </div>
+
+                <!-- 7. West: You stand guard -->
+                <div id="joyPod6" class="joy-pod absolute top-1/2 left-0 -translate-y-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    7. STAND GUARD
+                </div>
+
+                <!-- 8. North-West: Alright men, load your weapons -->
+                <div id="joyPod7" class="joy-pod absolute top-7 left-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
+                    8. LOAD WEAPONS
+                </div>
+
+                <!-- Interactive Joystick Puck (Imperial Red Theme) -->
+                <div id="joystickPuck" class="w-16 h-16 rounded-full border-2 border-red-500 bg-gradient-to-b from-red-600 to-red-950 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.7)] z-20 cursor-grab active:cursor-grabbing transition-transform duration-75">
+                    <div class="w-4 h-4 rounded-full border border-white/80 bg-red-300 shadow-[0_0_8px_rgba(255,255,255,0.9)]"></div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= MODE 2: SOUNDBOARD ================= -->
-        <section id="viewSoundboard" style="display: none;" class="text-left">
-            <div class="flex items-center justify-between mb-3 border-b border-red-900/30 pb-2">
+        <!-- ================= MODE 3: SOUNDBOARD ================= -->
+        <section id="viewSoundboard" style="display: none;" class="flex-1 overflow-y-auto text-left pr-1">
+            <div class="flex items-center justify-between mb-2 border-b border-red-900/30 pb-1.5">
                 <span class="orbitron text-xs text-red-400 font-bold uppercase tracking-wider">Tactical Comms Logs (18 Clips)</span>
                 <span id="boardStatus" class="text-[11px] text-gray-400 font-mono">READY</span>
             </div>
 
             <!-- Soundboard Master Volume -->
-            <div class="mb-3 bg-black/40 p-3 rounded-xl border border-red-900/30 text-left">
-                <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls output playback volume for soundboard voice clips.">
-                    <span class="cursor-help flex items-center gap-1 font-mono">Soundboard Master Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+            <div class="mb-3 bg-black/40 p-2.5 rounded-xl border border-red-900/30 text-left">
+                <div class="flex justify-between text-xs text-gray-400 mb-1" title="Controls output playback volume for soundboard voice clips.">
+                    <span class="font-mono">Soundboard Master Vol</span>
                     <span id="valSoundboardVol" class="font-mono text-red-400">75%</span>
                 </div>
                 <input type="range" id="soundboardVolSlider" min="0" max="1" step="0.05" value="0.75" class="styled-slider">
             </div>
 
-            <!-- Category Filter Chips for Quick Glove Tapping -->
-            <div class="grid grid-cols-5 gap-1 sm:gap-1.5 mb-4 text-[10px] sm:text-xs font-bold orbitron">
-                <button id="filterAll" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-red-600 text-white border border-red-500 shadow-sm transition-all text-center">ALL</button>
-                <button id="filterGuests" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-orange-400 border border-orange-900/50 hover:border-orange-500 transition-all text-center">GUESTS</button>
-                <button id="filterDroids" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-amber-400 border border-amber-900/50 hover:border-amber-500 transition-all text-center">DROIDS</button>
-                <button id="filterCombat" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-red-400 border border-red-900/50 hover:border-red-500 transition-all text-center">COMBAT</button>
-                <button id="filterPatrol" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-blue-400 border border-blue-900/50 hover:border-blue-500 transition-all text-center">PATROL</button>
+            <!-- Category Filter Chips -->
+            <div class="grid grid-cols-5 gap-1 mb-3 text-[10px] font-bold orbitron">
+                <button id="filterAll" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-red-600 text-white border border-red-500 text-center">ALL</button>
+                <button id="filterGuests" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-orange-400 border border-orange-900/50 text-center">GUESTS</button>
+                <button id="filterDroids" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-amber-400 border border-amber-900/50 text-center">DROIDS</button>
+                <button id="filterCombat" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-red-400 border border-red-900/50 text-center">COMBAT</button>
+                <button id="filterPatrol" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-blue-400 border border-blue-900/50 text-center">PATROL</button>
             </div>
 
             <!-- Glove-Friendly Dynamic Grouped Audio Grid -->
-            <div id="soundboardGrid" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1 pb-4">
+            <div id="soundboardGrid" class="space-y-3 pb-2">
                 <!-- Dynamically generated categorized buttons -->
             </div>
         </section>
+
+        <!-- Centered Version Tracker & Imperial ID Footer -->
+        <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
+            <span class="text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
+                SYS VER // <span class="text-red-400 font-bold">v1.6.1</span>
+            </span>
+        </div>
     </div>
 
     <script>
@@ -245,7 +308,7 @@
         let scriptProcessor = null;
         let recordedBuffers = [];
         let preRollBuffers = [];
-        const PRE_ROLL_MAX = 3; // ~250ms rolling buffer to prevent clipped initial words
+        const PRE_ROLL_MAX = 3; // ~250ms rolling buffer
 
         // UI Element References
         const authModal = document.getElementById('authModal');
@@ -253,22 +316,23 @@
         const authPromptText = document.getElementById('authPromptText');
 
         const tabComlink = document.getElementById('tabComlink');
+        const tabJoystick = document.getElementById('tabJoystick');
         const tabSoundboard = document.getElementById('tabSoundboard');
+
         const viewComlink = document.getElementById('viewComlink');
+        const viewJoystick = document.getElementById('viewJoystick');
         const viewSoundboard = document.getElementById('viewSoundboard');
 
         const distSlider = document.getElementById('distSlider');
         const pitchSlider = document.getElementById('pitchSlider');
         const lengthSlider = document.getElementById('lengthSlider');
         const burstSlider = document.getElementById('burstSlider');
-        const comlinkVolSlider = document.getElementById('comlinkVolSlider');
         const soundboardVolSlider = document.getElementById('soundboardVolSlider');
 
         const valDist = document.getElementById('valDist');
         const valPitch = document.getElementById('valPitch');
         const valLength = document.getElementById('valLength');
         const valBurst = document.getElementById('valBurst');
-        const valComlinkVol = document.getElementById('valComlinkVol');
         const valSoundboardVol = document.getElementById('valSoundboardVol');
 
         const resetBtn = document.getElementById('resetBtn');
@@ -276,19 +340,23 @@
         const statusLight = document.getElementById('statusLight');
         const statusText = document.getElementById('statusText');
 
-        // --- Tab Switching with iOS Touch Resilience ---
+        // --- 3-Way Tab Switching with iOS Touch Resilience ---
         function switchTab(mode) {
-            if (mode === 'comlink') {
-                tabComlink.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
-                tabSoundboard.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
-                viewComlink.style.display = 'block';
-                viewSoundboard.style.display = 'none';
-            } else if (mode === 'soundboard') {
-                tabSoundboard.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
-                tabComlink.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
-                viewComlink.style.display = 'none';
-                viewSoundboard.style.display = 'block';
-            }
+            const tabs = [
+                { id: 'comlink', tab: tabComlink, view: viewComlink, display: 'block' },
+                { id: 'joystick', tab: tabJoystick, view: viewJoystick, display: 'flex' },
+                { id: 'soundboard', tab: tabSoundboard, view: viewSoundboard, display: 'block' }
+            ];
+
+            tabs.forEach(t => {
+                if (t.id === mode) {
+                    t.tab.className = "tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
+                    t.view.style.display = t.display;
+                } else {
+                    t.tab.className = "tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
+                    t.view.style.display = 'none';
+                }
+            });
         }
 
         function bindTab(btn, mode) {
@@ -303,12 +371,13 @@
         }
 
         bindTab(tabComlink, 'comlink');
+        bindTab(tabJoystick, 'joystick');
         bindTab(tabSoundboard, 'soundboard');
 
         // --- Status Helper ---
         function updateStatus(text, bgClass) {
-            statusText.textContent = text;
-            statusLight.className = `w-3 h-3 rounded-full transition-colors duration-300 ${bgClass}`;
+            if (statusText) statusText.textContent = text;
+            if (statusLight) statusLight.className = `w-2.5 h-2.5 rounded-full transition-colors duration-300 ${bgClass}`;
         }
 
         // --- Audio Initializer (Unlocks iOS AudioContext on Touch) ---
@@ -322,7 +391,7 @@
             }
         }
 
-        // --- Microphone Authorization & Zero-Latency Audio Pipeline ---
+        // --- Microphone Authorization & Comms Pipeline ---
         async function setupCommsPipeline() {
             initAudio();
             try {
@@ -335,7 +404,6 @@
                     }
                 });
 
-                // Attach continuous PCM listener with rolling pre-roll buffer
                 const sourceNode = audioContext.createMediaStreamSource(mediaStream);
                 scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
 
@@ -353,7 +421,6 @@
                     }
                 };
 
-                // Keep processor node alive through a silent gain node
                 const silence = audioContext.createGain();
                 silence.gain.value = 0;
                 sourceNode.connect(scriptProcessor);
@@ -408,11 +475,8 @@
             const noiseSource = audioContext.createBufferSource();
             noiseSource.buffer = buffer;
             const gainNode = audioContext.createGain();
-            const comlinkMasterGain = audioContext.createGain();
-            comlinkMasterGain.gain.setValueAtTime(parseFloat(comlinkVolSlider.value), now);
 
             if (isPopHiss) {
-                // Dual stage comms squelch: HPF 900Hz, LPF 5000Hz (flat granular white noise)
                 const hpf = audioContext.createBiquadFilter();
                 hpf.type = 'highpass';
                 hpf.frequency.setValueAtTime(900, now);
@@ -433,7 +497,6 @@
                 hpf.connect(lpf);
                 lpf.connect(gainNode);
             } else {
-                // Metallic "Drill Pop" transient impulse
                 const bp = audioContext.createBiquadFilter();
                 bp.type = 'bandpass';
                 bp.frequency.setValueAtTime(1800, now);
@@ -451,22 +514,19 @@
                 dist.connect(gainNode);
             }
 
-            gainNode.connect(comlinkMasterGain);
-            comlinkMasterGain.connect(audioContext.destination);
+            gainNode.connect(audioContext.destination);
             noiseSource.start(now);
             return duration;
         }
 
-        // --- Voice Recording & In-Helmet Modulation Processing ---
+        // --- Voice Recording & Modulation ---
         function startRecording() {
             if (!isCommsReady || isRecording) return;
             initAudio();
 
-            // Pre-seed buffer with the rolling 250ms pre-roll so the start of your sentence is never cut off
             recordedBuffers = [...preRollBuffers];
             isRecording = true;
 
-            // NO burst sound on button press - record in total silence
             updateStatus('RECORDING...', 'bg-red-600 animate-pulse');
             transmitBtn.classList.add('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
         }
@@ -488,18 +548,15 @@
                 return;
             }
 
-            // Total sample count
             let totalSamples = 0;
             for (let b of buffers) totalSamples += b.length;
 
-            // Ignore brief accidental taps (under 0.2s)
             if (totalSamples < audioContext.sampleRate * 0.2) {
                 updateStatus('STANDBY', 'bg-emerald-500');
                 transmitBtn.disabled = false;
                 return;
             }
 
-            // Assemble into raw AudioBuffer with 0ms decode latency
             const audioBuffer = audioContext.createBuffer(1, totalSamples, audioContext.sampleRate);
             const channelData = audioBuffer.getChannelData(0);
             let offset = 0;
@@ -515,7 +572,6 @@
             try {
                 updateStatus('TRANSMITTING...', 'bg-green-600');
 
-                // Radio burst plays after releasing the button as transmission commences
                 const burstDelay = playRadioBurst('start');
                 const startTime = audioContext.currentTime + (burstDelay * 0.7);
 
@@ -544,16 +600,12 @@
                 const makeUpGain = audioContext.createGain();
                 makeUpGain.gain.value = 2.0;
 
-                const comlinkMasterGain = audioContext.createGain();
-                comlinkMasterGain.gain.value = parseFloat(comlinkVolSlider.value);
-
                 source.connect(highpass);
                 highpass.connect(lowpass);
                 lowpass.connect(distortion);
                 distortion.connect(compressor);
                 compressor.connect(makeUpGain);
-                makeUpGain.connect(comlinkMasterGain);
-                comlinkMasterGain.connect(audioContext.destination);
+                makeUpGain.connect(audioContext.destination);
 
                 source.start(startTime);
                 source.onended = () => {
@@ -568,7 +620,7 @@
             }
         }
 
-        // --- Transmit Button Touch & Pointer Listeners ---
+        // --- Transmit Button Touch Listeners ---
         transmitBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             startRecording();
@@ -596,17 +648,275 @@
         burstSlider.addEventListener('input', (e) => {
             valBurst.textContent = `${Math.round(e.target.value * 100)}%`;
         });
-        comlinkVolSlider.addEventListener('input', (e) => {
-            valComlinkVol.textContent = `${Math.round(e.target.value * 100)}%`;
+
+        // --- RADIAL JOYSTICK ENGINE (PERMANENT DOM & RED THEME) ---
+        const JOYSTICK_TRACKS = [
+            { index: 0, file: "There's no one here.mp3", fullLabel: "1. There's no one here" },
+            { index: 1, file: "Let me see your ID.mp3", fullLabel: "2. Let me see your ID" },
+            { index: 2, file: "We don't need to see ID.mp3", fullLabel: "3. We don't need to see ID" },
+            { index: 3, file: "Move along, move along.mp3", fullLabel: "4. Move along, move along" },
+            { index: 4, file: "Look there!.mp3", fullLabel: "5. Look there!" },
+            { index: 5, file: "Follow me.mp3", fullLabel: "6. Follow me" },
+            { index: 6, file: "You stand guard.mp3", fullLabel: "7. You stand guard" },
+            { index: 7, file: "Alright men, load your weapons.mp3", fullLabel: "8. Alright men, load your weapons" }
+        ];
+
+        const joystickArena = document.getElementById('joystickArena');
+        const joystickPuck = document.getElementById('joystickPuck');
+        const joyHud = document.getElementById('joyHud');
+
+        let isJoystickActive = false;
+        let activeTargetIndex = null;
+        let activeJoyPodElem = null;
+
+        const DEADZONE = 24;
+        const MAX_TRAVEL = 50;
+
+        function clearAllPodHighlights() {
+            for (let i = 0; i < 8; i++) {
+                const pod = document.getElementById(`joyPod${i}`);
+                if (pod) {
+                    pod.className = "joy-pod absolute px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150";
+                }
+            }
+        }
+
+        function highlightPod(index) {
+            clearAllPodHighlights();
+            const pod = document.getElementById(`joyPod${index}`);
+            if (pod) {
+                pod.className = "joy-pod absolute px-2.5 py-1.5 rounded-md border-2 border-red-500 bg-red-950 text-white text-[10px] sm:text-[11px] font-black tracking-wider orbitron pointer-events-none z-10 whitespace-nowrap shadow-[0_0_20px_rgba(239,68,68,0.9)] scale-110 transition-all duration-75";
+            }
+        }
+
+        function handleJoystickMove(clientX, clientY) {
+            const rect = joystickArena.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const dx = clientX - centerX;
+            const dy = clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+
+            // Clamp puck displacement
+            const clampedDist = Math.min(dist, MAX_TRAVEL);
+            const normX = dist === 0 ? 0 : (dx / dist) * clampedDist;
+            const normY = dist === 0 ? 0 : (dy / dist) * clampedDist;
+            joystickPuck.style.transform = `translate(${normX}px, ${normY}px)`;
+
+            if (dist > DEADZONE) {
+                // Calculate angle from North (0° = North, clockwise)
+                const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+                const angleFromNorth = (deg - 270 + 360) % 360;
+                const sectorIndex = Math.floor(((angleFromNorth + 22.5) % 360) / 45);
+
+                if (activeTargetIndex !== sectorIndex) {
+                    activeTargetIndex = sectorIndex;
+                    highlightPod(sectorIndex);
+                    joyHud.textContent = `[ ARMED // ${JOYSTICK_TRACKS[sectorIndex].fullLabel.toUpperCase()} ]`;
+                    joyHud.className = "orbitron text-xs font-bold text-red-400 tracking-wider truncate";
+                }
+            } else {
+                if (activeTargetIndex !== null) {
+                    activeTargetIndex = null;
+                    clearAllPodHighlights();
+                    joyHud.textContent = "[ RADIAL // READY ]";
+                    joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
+                }
+            }
+        }
+
+        // --- Unified Robust Audio Player with Synthesizer Fallback ---
+        let currentAudio = null;
+        let activeSoundBtn = null;
+        let activeCategoryFilter = "all";
+
+        function stopAllPlayback() {
+            if (currentAudio) {
+                try { currentAudio.pause(); } catch(e) {}
+                currentAudio = null;
+            }
+            if ('speechSynthesis' in window) {
+                try { window.speechSynthesis.cancel(); } catch(e) {}
+            }
+            if (activeSoundBtn) {
+                activeSoundBtn.querySelector('.indicator').textContent = '▶';
+                activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
+                activeSoundBtn = null;
+            }
+            const bStatus = document.getElementById('boardStatus');
+            if (bStatus) bStatus.textContent = 'READY';
+        }
+
+        function fallbackSynthesizedVoice(text, onStart, onEnd) {
+            if (onStart) onStart(true);
+            playRadioBurst('start');
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const cleanText = text.replace(/^\d+\.\s*/, '').replace(/[!?,.]/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.rate = 0.92;
+                utterance.pitch = 0.8;
+                if (soundboardVolSlider) {
+                    utterance.volume = parseFloat(soundboardVolSlider.value);
+                }
+
+                const voices = window.speechSynthesis.getVoices();
+                const imperialVoice = voices.find(v => v.lang && v.lang.startsWith('en') && (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Alex')));
+                if (imperialVoice) utterance.voice = imperialVoice;
+
+                let finished = false;
+                const finishVoice = () => {
+                    if (finished) return;
+                    finished = true;
+                    playRadioBurst('end');
+                    if (onEnd) onEnd();
+                };
+
+                utterance.onend = finishVoice;
+                utterance.onerror = finishVoice;
+
+                setTimeout(() => {
+                    try {
+                        window.speechSynthesis.speak(utterance);
+                    } catch(e) {
+                        finishVoice();
+                    }
+                }, 140);
+
+                setTimeout(finishVoice, 3000);
+            } else {
+                setTimeout(() => {
+                    playRadioBurst('end');
+                    if (onEnd) onEnd();
+                }, 800);
+            }
+        }
+
+        function playCommsClip({ fileName, text, onStart, onEnd }) {
+            initAudio();
+            stopAllPlayback();
+
+            const candidates = [
+                encodeURI(fileName),
+                fileName,
+                './' + encodeURI(fileName)
+            ];
+
+            let candidateIndex = 0;
+
+            function tryNextCandidate() {
+                if (candidateIndex >= candidates.length) {
+                    fallbackSynthesizedVoice(text, onStart, onEnd);
+                    return;
+                }
+
+                const src = candidates[candidateIndex++];
+                const audio = new Audio();
+                if (soundboardVolSlider) {
+                    audio.volume = parseFloat(soundboardVolSlider.value);
+                }
+
+                let hasStarted = false;
+
+                const cleanup = () => {
+                    audio.onerror = null;
+                    audio.onended = null;
+                };
+
+                audio.onended = () => {
+                    cleanup();
+                    currentAudio = null;
+                    if (onEnd) onEnd();
+                };
+
+                audio.onerror = () => {
+                    cleanup();
+                    if (!hasStarted) {
+                        tryNextCandidate();
+                    } else {
+                        currentAudio = null;
+                        if (onEnd) onEnd();
+                    }
+                };
+
+                audio.src = src;
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        hasStarted = true;
+                        currentAudio = audio;
+                        if (onStart) onStart(false);
+                    }).catch(() => {
+                        cleanup();
+                        tryNextCandidate();
+                    });
+                }
+            }
+
+            tryNextCandidate();
+        }
+
+        function playJoystickVoice(track) {
+            highlightPod(track.index);
+            joyHud.textContent = `[ TRANSMITTING // ${track.fullLabel.toUpperCase()} ]`;
+            joyHud.className = "orbitron text-xs font-bold text-red-500 tracking-wider truncate animate-pulse";
+
+            playCommsClip({
+                fileName: track.file,
+                text: track.fullLabel,
+                onStart: (isFallback) => {
+                    if (isFallback) {
+                        joyHud.textContent = `[ COMLINK SYNTH // ${track.fullLabel.toUpperCase()} ]`;
+                    }
+                },
+                onEnd: () => {
+                    clearAllPodHighlights();
+                    joyHud.textContent = "[ RADIAL // READY ]";
+                    joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
+                }
+            });
+        }
+
+        joystickArena.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            initAudio();
+            isJoystickActive = true;
+            joystickArena.setPointerCapture(e.pointerId);
+            handleJoystickMove(e.clientX, e.clientY);
         });
 
-        // --- Soundboard Engine (Categorized & Armor/Glove Optimized) ---
+        joystickArena.addEventListener('pointermove', (e) => {
+            if (!isJoystickActive) return;
+            e.preventDefault();
+            handleJoystickMove(e.clientX, e.clientY);
+        });
+
+        function releaseJoystick(e) {
+            if (!isJoystickActive) return;
+            isJoystickActive = false;
+            joystickPuck.style.transform = 'translate(0px, 0px)';
+
+            if (activeTargetIndex !== null) {
+                const targetedTrack = JOYSTICK_TRACKS[activeTargetIndex];
+                activeTargetIndex = null;
+                playJoystickVoice(targetedTrack);
+            } else {
+                clearAllPodHighlights();
+                joyHud.textContent = "[ RADIAL // READY ]";
+            }
+        }
+
+        joystickArena.addEventListener('pointerup', releaseJoystick);
+        joystickArena.addEventListener('pointercancel', releaseJoystick);
+
+        // --- Soundboard Engine (Categorized Logs) ---
         const SOUNDBOARD_CATEGORIES = [
             {
                 id: "halloween",
                 name: "🎃 HALLOWEEN / GUEST PROTOCOLS",
-                badgeClass: "bg-orange-950/50 border-orange-700/70 text-orange-400",
-                buttonHover: "hover:border-orange-500 active:bg-orange-950/40",
                 tracks: [
                     { file: "There's no one here.mp3", label: "1. There's no one here" },
                     { file: "Let me see your ID.mp3", label: "2. Let me see your ID" },
@@ -621,8 +931,6 @@
             {
                 id: "droids",
                 name: "DROID INSPECTION & RECON",
-                badgeClass: "bg-amber-950/50 border-amber-800/60 text-amber-400",
-                buttonHover: "hover:border-amber-500 active:bg-amber-950/40",
                 tracks: [
                     { file: "Look sir! Droids.mp3", label: "Look sir! Droids" },
                     { file: "How long have you had these droids.mp3", label: "How long have you had these droids?" },
@@ -632,8 +940,6 @@
             {
                 id: "combat",
                 name: "COMBAT & ENGAGEMENT",
-                badgeClass: "bg-red-950/50 border-red-800/60 text-red-400",
-                buttonHover: "hover:border-red-500 active:bg-red-950/40",
                 tracks: [
                     { file: "Stop that ship! Blast them.mp3", label: "Stop that ship! Blast them!" },
                     { file: "There's one. Set for stun.mp3", label: "There's one. Set for stun!" },
@@ -643,8 +949,6 @@
             {
                 id: "patrol",
                 name: "PATROL & GUARD CHATTER",
-                badgeClass: "bg-blue-950/50 border-blue-800/60 text-blue-400",
-                buttonHover: "hover:border-blue-500 active:bg-blue-950/40",
                 tracks: [
                     { file: "Give me regular reports please.mp3", label: "Give me regular reports please" },
                     { file: "Maybe its another drill.mp3", label: "Maybe it's another drill" },
@@ -653,10 +957,6 @@
                 ]
             }
         ];
-
-        let currentAudio = null;
-        let activeSoundBtn = null;
-        let activeCategoryFilter = "all";
 
         if (soundboardVolSlider) {
             soundboardVolSlider.addEventListener('input', (e) => {
@@ -667,7 +967,6 @@
             });
         }
 
-        // Setup filter button events
         function setupFilters() {
             const filterMap = [
                 { id: 'filterAll', val: 'all', activeClass: 'bg-red-600 text-white border-red-500' },
@@ -682,14 +981,13 @@
                 if (!btn) return;
                 btn.addEventListener('click', () => {
                     activeCategoryFilter = f.val;
-                    // Reset all
                     filterMap.forEach(o => {
                         const otherBtn = document.getElementById(o.id);
                         if (otherBtn) {
-                            otherBtn.className = "cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
+                            otherBtn.className = "cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
                         }
                     });
-                    btn.className = `cat-filter-btn py-2 px-1 rounded-lg ${f.activeClass} shadow-sm transition-all text-center font-bold`;
+                    btn.className = `cat-filter-btn py-1.5 px-1 rounded-lg ${f.activeClass} shadow-sm transition-all text-center font-bold`;
                     buildSoundboard();
                 });
             });
@@ -706,15 +1004,14 @@
                 }
 
                 const catWrapper = document.createElement('div');
-                catWrapper.className = "space-y-2.5";
+                catWrapper.className = "space-y-2";
 
-                // Minimalist Section Divider (shown when "ALL" is selected to avoid visual clutter)
                 if (activeCategoryFilter === 'all') {
                     const divider = document.createElement('div');
-                    divider.className = `flex items-center gap-2 pt-2 pb-0.5 text-xs font-mono font-bold tracking-widest ${category.badgeColor}`;
+                    divider.className = "flex items-center gap-2 pt-2 pb-0.5 text-[11px] font-mono font-bold tracking-widest text-red-500/80";
                     divider.innerHTML = `
                         <span class="h-px bg-zinc-800 flex-1"></span>
-                        <span>// ${category.name} (${category.tracks.length})</span>
+                        <span>// ${category.name}</span>
                         <span class="h-px bg-zinc-800 flex-1"></span>
                     `;
                     catWrapper.appendChild(divider);
@@ -723,18 +1020,17 @@
                 category.tracks.forEach((track) => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    // High-contrast, glove-friendly cards: 72px min height, 6px colored left bar, 16px+ bold text
-                    btn.className = `w-full min-h-[72px] text-left p-4 rounded-xl bg-[#14151a] border-2 border-zinc-800 border-l-[6px] ${category.accentBorder} transition-all flex items-center justify-between group active:scale-[0.98] cursor-pointer shadow-lg`;
+                    btn.className = "w-full min-h-[58px] text-left p-3 rounded-xl bg-[#14151a] border border-zinc-800 border-l-4 border-l-red-600 transition-all flex items-center justify-between group active:scale-[0.98] cursor-pointer shadow-md";
                     btn.innerHTML = `
-                        <div class="pr-3 leading-snug">
-                            <span class="text-base sm:text-lg font-black text-white tracking-wide block">${track.label}</span>
+                        <div class="pr-2 leading-snug">
+                            <span class="text-sm sm:text-base font-black text-white tracking-wide block">${track.label}</span>
                         </div>
-                        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-black border-2 border-zinc-700 shrink-0 group-hover:border-zinc-400 transition-colors shadow-inner">
-                            <span class="indicator text-red-500 font-bold text-xl group-hover:text-red-400">▶</span>
+                        <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-black border border-zinc-700 shrink-0 group-hover:border-zinc-400 transition-colors">
+                            <span class="indicator text-red-500 font-bold text-base group-hover:text-red-400">▶</span>
                         </div>
                     `;
 
-                    btn.addEventListener('click', () => playTrack(track.file, btn));
+                    btn.addEventListener('click', () => playTrack(track, btn));
                     catWrapper.appendChild(btn);
                 });
 
@@ -742,51 +1038,32 @@
             });
         }
 
-        function playTrack(fileName, buttonElem) {
-            initAudio();
-
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
-                if (activeSoundBtn) {
-                    activeSoundBtn.querySelector('.indicator').textContent = '▶';
-                    activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
-                }
-            }
-
+        function playTrack(track, buttonElem) {
             if (activeSoundBtn === buttonElem) {
-                activeSoundBtn = null;
-                document.getElementById('boardStatus').textContent = 'READY';
+                stopAllPlayback();
                 return;
             }
 
-            const encodedName = encodeURIComponent(fileName).replace(/%20/g, '%20').replace(/'/g, '%27').replace(/!/g, '%21');
-            const audio = new Audio(encodedName);
-            const volumeSlider = document.getElementById('soundboardVolSlider');
-            if (volumeSlider) {
-                audio.volume = parseFloat(volumeSlider.value);
-            }
+            stopAllPlayback();
+            activeSoundBtn = buttonElem;
+            buttonElem.querySelector('.indicator').textContent = '■';
+            buttonElem.classList.add('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
+            document.getElementById('boardStatus').textContent = 'PLAYING';
 
-            audio.play().then(() => {
-                currentAudio = audio;
-                activeSoundBtn = buttonElem;
-                buttonElem.querySelector('.indicator').textContent = '■';
-                buttonElem.classList.add('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
-                document.getElementById('boardStatus').textContent = 'PLAYING';
-
-                audio.onended = () => {
-                    buttonElem.querySelector('.indicator').textContent = '▶';
-                    buttonElem.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
-                    currentAudio = null;
-                    activeSoundBtn = null;
+            playCommsClip({
+                fileName: track.file,
+                text: track.label,
+                onStart: (isFallback) => {
+                    document.getElementById('boardStatus').textContent = isFallback ? 'SYNTH PLAYING' : 'PLAYING';
+                },
+                onEnd: () => {
+                    if (activeSoundBtn === buttonElem) {
+                        buttonElem.querySelector('.indicator').textContent = '▶';
+                        buttonElem.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
+                        activeSoundBtn = null;
+                    }
                     document.getElementById('boardStatus').textContent = 'READY';
-                };
-            }).catch(err => {
-                console.error("Audio playback error:", err);
-                document.getElementById('boardStatus').textContent = 'ERR: NOT FOUND';
-                setTimeout(() => {
-                    document.getElementById('boardStatus').textContent = 'READY';
-                }, 2500);
+                }
             });
         }
 
@@ -800,8 +1077,6 @@
             valLength.textContent = '0.40s';
             burstSlider.value = 0.8;
             valBurst.textContent = '80%';
-            comlinkVolSlider.value = 0.4;
-            valComlinkVol.textContent = '40%';
             if (soundboardVolSlider) {
                 soundboardVolSlider.value = 0.75;
                 valSoundboardVol.textContent = '75%';
