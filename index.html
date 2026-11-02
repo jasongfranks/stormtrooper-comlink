@@ -221,12 +221,21 @@
         <!-- ================= MODE 2: SOUNDBOARD ================= -->
         <section id="viewSoundboard" class="hidden text-left">
             <div class="flex items-center justify-between mb-4 border-b border-red-900/30 pb-3">
-                <span class="orbitron text-xs text-red-400 font-bold uppercase tracking-wider">Tactical Comms Logs (19 Clips)</span>
+                <span class="orbitron text-xs text-red-400 font-bold uppercase tracking-wider">Tactical Comms Logs (18 Clips)</span>
                 <span id="boardStatus" class="text-[11px] text-gray-400 font-mono">READY</span>
             </div>
 
-            <!-- 19-Track Grid -->
-            <div id="soundGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[60vh] overflow-y-auto pr-1">
+            <!-- Soundboard Master Volume Slider -->
+            <div class="mb-4 bg-black/40 p-3 rounded-xl border border-red-900/30">
+                <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls output playback volume for soundboard audio tracks.">
+                    <span class="cursor-help flex items-center gap-1 font-mono">Soundboard Master Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                    <span id="valSoundboardVol" class="font-mono text-red-400">80%</span>
+                </div>
+                <input type="range" id="soundboardVolSlider" min="0" max="1" step="0.05" value="0.8" class="styled-slider">
+            </div>
+
+            <!-- Soundboard Grid -->
+            <div id="soundGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[55vh] overflow-y-auto pr-1">
                 <!-- Injected via JavaScript -->
             </div>
         </section>
@@ -570,33 +579,53 @@
         actionBtn.addEventListener('touchstart', startRecording, { passive: false });
         window.addEventListener('touchend', stopRecording);
 
-        // --- Soundboard Clip Mapping (19 tracks) ---
+        // --- Soundboard Clip Mapping (Exact filenames from repository) ---
         const CLIPS = [
-            { id: 1,  name: "Look sir! Droids.", file: "Look sir! Droids.mp3" },
-            { id: 2,  name: "There's one. Set for stun.", file: "There's one. Set for stun.mp3" },
-            { id: 3,  name: "How long have you had these droids", file: "How long have you had these droids.mp3" },
-            { id: 4,  name: "Let me see your ID.", file: "Let me see your ID.mp3" },
-            { id: 5,  name: "We don't need to see ID.", file: "We don't need to see ID.mp3" },
-            { id: 6,  name: "These aren't droids we're looking for.", file: "These aren't droids we're looking for.mp3" },
-            { id: 7,  name: "Move along, move along.", file: "Move along, move along.mp3" },
-            { id: 8,  name: "There's no one here.", file: "There's no one here.mp3" },
-            { id: 9,  name: "Alright.", file: "Alright.mp3" },
-            { id: 10, name: "Stop that ship! Blast them.", file: "Stop that ship! Blast them.mp3" },
-            { id: 11, name: "Comms Channel 11", file: "storm_11.mp3" },
-            { id: 12, name: "Comms Channel 12", file: "storm_12.mp3" },
-            { id: 13, name: "Comms Channel 13", file: "storm_13.mp3" },
-            { id: 14, name: "Comms Channel 14", file: "storm_14.mp3" },
-            { id: 15, name: "Comms Channel 15", file: "storm_15.mp3" },
-            { id: 16, name: "Comms Channel 16", file: "storm_16.mp3" },
-            { id: 17, name: "Give me regular reports please", file: "storm_17.mp3" },
-            { id: 18, name: "Comms Channel 18", file: "storm_18.mp3" },
-            { id: 19, name: "Maybe it's another drill", file: "storm_19.mp3" }
+            { id: 1,  name: "Alright men, load your weapons", file: "Alright men, load your weapons.mp3" },
+            { id: 2,  name: "Alright",                        file: "Alright.mp3" },
+            { id: 3,  name: "Follow me",                      file: "Follow me.mp3" },
+            { id: 4,  name: "Give me regular reports please", file: "Give me regular reports please.mp3" },
+            { id: 5,  name: "How long have you had these droids", file: "How long have you had these droids.mp3" },
+            { id: 6,  name: "It's them! Blast them!",         file: "It's them! Blast them.mp3" },
+            { id: 7,  name: "Let me see your ID",             file: "Let me see your ID.mp3" },
+            { id: 8,  name: "Look sir! Droids",               file: "Look sir! Droids.mp3" },
+            { id: 9,  name: "Look there!",                    file: "Look there!.mp3" },
+            { id: 10, name: "Maybe its another drill",        file: "Maybe its another drill.mp3" },
+            { id: 11, name: "Move along, move along",         file: "Move along, move along.mp3" },
+            { id: 12, name: "Stop that ship! Blast them!",    file: "Stop that ship! Blast them.mp3" },
+            { id: 13, name: "There's no one here",            file: "There's no one here.mp3" },
+            { id: 14, name: "There's one. Set for stun",      file: "There's one. Set for stun.mp3" },
+            { id: 15, name: "These aren't droids we're looking for", file: "These aren't droids we're looking for.mp3" },
+            { id: 16, name: "We don't need to see ID",        file: "We don't need to see ID.mp3" },
+            { id: 17, name: "You know whats going on",        file: "You know whats going on.mp3" },
+            { id: 18, name: "You stand guard",                file: "You stand guard.mp3" }
         ];
 
         const soundGrid = document.getElementById('soundGrid');
         const boardStatus = document.getElementById('boardStatus');
+        const soundboardVolSlider = document.getElementById('soundboardVolSlider');
+        const valSoundboardVol = document.getElementById('valSoundboardVol');
         let currentAudio = null;
         let activeTileBtn = null;
+
+        soundboardVolSlider.addEventListener('input', e => {
+            const vol = parseFloat(e.target.value);
+            valSoundboardVol.textContent = Math.round(vol * 100) + '%';
+            if (currentAudio) {
+                currentAudio.volume = vol;
+            }
+        });
+
+        // Resolve local file path with URI encoding for spaces, exclamation marks, etc.
+        function getSafeAudioUrl(filename) {
+            // Encode URI components cleanly to work on GitHub Pages web servers
+            const encoded = encodeURIComponent(filename)
+                .replace(/'/g, '%27')
+                .replace(/!/g, '%21')
+                .replace(/\(/g, '%28')
+                .replace(/\)/g, '%29');
+            return new URL(encoded, window.location.href).href;
+        }
 
         // Populate Soundboard Grid
         CLIPS.forEach((clip) => {
@@ -611,7 +640,7 @@
                         ${clip.name}
                     </span>
                 </div>
-                <span class="text-[10px] text-red-500/60 group-hover:text-red-400 shrink-0 font-mono">
+                <span class="text-[10px] text-red-500/60 group-hover:text-red-400 shrink-0 font-mono play-indicator">
                     ▶
                 </span>
             `;
@@ -620,37 +649,50 @@
             soundGrid.appendChild(btn);
         });
 
-        function playClip(clip, tileElement) {
-            // Stop existing soundboard audio if playing
+        async function playClip(clip, tileElement) {
+            // Unlock audio on iOS gesture
+            if (audioContext && audioContext.state === 'suspended') {
+                try { await audioContext.resume(); } catch (e) {}
+            }
+
+            // Stop existing audio if playing
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio.currentTime = 0;
             }
             if (activeTileBtn) {
                 activeTileBtn.classList.remove('tile-active');
+                const prevIndicator = activeTileBtn.querySelector('.play-indicator');
+                if (prevIndicator) prevIndicator.textContent = '▶';
             }
 
             activeTileBtn = tileElement;
             activeTileBtn.classList.add('tile-active');
+            const playIndicator = tileElement.querySelector('.play-indicator');
+            if (playIndicator) playIndicator.textContent = '■';
             boardStatus.textContent = `PLAYING: ${clip.name.toUpperCase()}`;
 
-            // Clean one-shot playback directly from file (no synthesized radio clicks/bursts)
-            const filePath = `./${encodeURIComponent(clip.file)}`;
-            const audio = new Audio(filePath);
+            const fileUrl = getSafeAudioUrl(clip.file);
+            const audio = new Audio(fileUrl);
+            audio.volume = parseFloat(soundboardVolSlider.value);
             currentAudio = audio;
 
             audio.play().then(() => {
                 audio.onended = () => {
                     activeTileBtn.classList.remove('tile-active');
+                    if (playIndicator) playIndicator.textContent = '▶';
                     boardStatus.textContent = "READY";
+                    currentAudio = null;
                 };
             }).catch(err => {
-                console.warn(`File "${clip.file}" could not be played directly from root.`, err);
-                boardStatus.textContent = `FILE NOT FOUND: "${clip.file}"`;
+                console.warn(`File "${clip.file}" failed to play from: ${fileUrl}`, err);
+                showError(`Playback error: "${clip.file}" not accessible.`);
+                boardStatus.textContent = `404: "${clip.file}"`;
+                activeTileBtn.classList.remove('tile-active');
+                if (playIndicator) playIndicator.textContent = '▶';
                 setTimeout(() => {
-                    activeTileBtn.classList.remove('tile-active');
                     boardStatus.textContent = "READY";
-                }, 1500);
+                }, 2500);
             });
         }
     </script>
