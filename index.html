@@ -343,7 +343,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.5.0</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.5.1</span>
             </button>
         </div>
     </div>
@@ -1126,9 +1126,12 @@
 
         let isJoystickActive = false;
         let activeTargetIndex = null;
+        let lastArmedSector = null;
+        let lastArmedTime = 0;
+        let deadzoneDwellTimer = null;
 
-        const DEADZONE = 24;
-        const MAX_TRAVEL = 50;
+        const DEADZONE = 18;
+        const MAX_TRAVEL = 80;
 
         function loadJoystickCategory(catId) {
             activeJoystickCategory = catId;
@@ -1193,6 +1196,11 @@
             joystickPuck.style.transform = `translate(${normX}px, ${normY}px)`;
 
             if (dist > DEADZONE) {
+                if (deadzoneDwellTimer) {
+                    clearTimeout(deadzoneDwellTimer);
+                    deadzoneDwellTimer = null;
+                }
+
                 // Calculate angle from North (0° = North, clockwise)
                 const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
                 const angleFromNorth = (deg - 270 + 360) % 360;
@@ -1207,29 +1215,31 @@
                 const track = currentJoystickTracks.find(t => t.sector === sectorIndex);
 
                 if (track) {
-                    if (activeTargetIndex !== sectorIndex) {
-                        activeTargetIndex = sectorIndex;
-                        highlightPod(sectorIndex);
-                        joyHud.textContent = `[ ARMED // ${track.fullLabel.toUpperCase()} ]`;
-                        joyHud.className = "orbitron text-xs font-bold text-red-400 tracking-wider truncate";
-                    }
+                    activeTargetIndex = sectorIndex;
+                    lastArmedSector = sectorIndex;
+                    lastArmedTime = Date.now();
+                    highlightPod(sectorIndex);
+                    joyHud.textContent = `[ ARMED // ${track.fullLabel.toUpperCase()} ]`;
+                    joyHud.className = "orbitron text-xs font-bold text-red-400 tracking-wider truncate";
                 } else {
-                    if (activeTargetIndex !== null) {
-                        activeTargetIndex = null;
-                        clearAllPodHighlights();
-                        joyHud.textContent = "[ RADIAL // READY ]";
-                        joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
-                    }
+                    activeTargetIndex = null;
+                    clearAllPodHighlights();
+                    joyHud.textContent = "[ RADIAL // READY ]";
+                    joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
                 }
             } else {
                 if (radarGlowBeam) {
                     radarGlowBeam.style.opacity = '0';
                 }
-                if (activeTargetIndex !== null) {
-                    activeTargetIndex = null;
-                    clearAllPodHighlights();
-                    joyHud.textContent = "[ RADIAL // READY ]";
-                    joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
+                activeTargetIndex = null;
+                // If user deliberately lingers in deadzone (>300ms), cancel selection
+                if (!deadzoneDwellTimer && lastArmedSector !== null) {
+                    deadzoneDwellTimer = setTimeout(() => {
+                        lastArmedSector = null;
+                        clearAllPodHighlights();
+                        joyHud.textContent = "[ RADIAL // READY ]";
+                        joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
+                    }, 300);
                 }
             }
         }
@@ -1415,21 +1425,29 @@
             if (radarGlowBeam) {
                 radarGlowBeam.style.opacity = '0';
             }
+            if (deadzoneDwellTimer) {
+                clearTimeout(deadzoneDwellTimer);
+                deadzoneDwellTimer = null;
+            }
 
-            if (activeTargetIndex !== null) {
-                const targetedTrack = currentJoystickTracks.find(t => t.sector === activeTargetIndex);
-                activeTargetIndex = null;
-                
+            // Choose either currently active target OR the recently armed sector within flick window
+            const chosenSector = (activeTargetIndex !== null)
+                ? activeTargetIndex
+                : ((lastArmedSector !== null && (Date.now() - lastArmedTime < 450)) ? lastArmedSector : null);
+
+            activeTargetIndex = null;
+            lastArmedSector = null;
+
+            if (chosenSector !== null) {
+                const targetedTrack = currentJoystickTracks.find(t => t.sector === chosenSector);
                 if (targetedTrack) {
                     playJoystickVoice(targetedTrack);
-                } else {
-                    clearAllPodHighlights();
-                    joyHud.textContent = "[ RADIAL // READY ]";
+                    return;
                 }
-            } else {
-                clearAllPodHighlights();
-                joyHud.textContent = "[ RADIAL // READY ]";
             }
+
+            clearAllPodHighlights();
+            joyHud.textContent = "[ RADIAL // READY ]";
         }
 
         joystickArena.addEventListener('pointerup', releaseJoystick);
