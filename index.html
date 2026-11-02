@@ -2,55 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Imperial Comlink & Soundboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Share Tech Mono', monospace;
-            background-color: #050505;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(40, 0, 0, 0.2), transparent 30%),
-                radial-gradient(circle at 85% 30%, rgba(220, 38, 38, 0.08), transparent 30%);
-            color: #e5e5e5;
-            margin: 0;
-            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #080808;
+            color: #d1d5db;
+            touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        h1, h2, h3, .orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        /* Glassmorphism Panel */
-        .glass-panel {
-            background: rgba(15, 15, 15, 0.72);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(220, 38, 38, 0.25);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(220, 38, 38, 0.06);
-        }
-
-        /* Pulsing Glow for Recording / Active State */
-        .recording-pulse {
-            animation: pulse-red 1.5s infinite;
-        }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.75); }
-            70% { box-shadow: 0 0 0 18px rgba(220, 38, 38, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-        }
-
-        /* Tech Grid Background */
-        .tech-grid {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: linear-gradient(rgba(220, 38, 38, 0.035) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(220, 38, 38, 0.035) 1px, transparent 1px);
-            background-size: 32px 32px;
-            z-index: -1;
-            pointer-events: none;
+        .orbitron {
+            font-family: 'Orbitron', monospace;
         }
 
         /* Scanline Overlay */
@@ -64,314 +29,268 @@
             opacity: 0.3;
         }
 
+        /* iOS Safari Touch & Tab Optimization */
+        .tab-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: pointer;
+        }
+
         /* Custom Range Sliders */
         .styled-slider {
             -webkit-appearance: none;
+            appearance: none;
             width: 100%;
-            height: 5px;
-            background: rgba(220, 38, 38, 0.25);
-            border-radius: 3px;
+            height: 6px;
+            background: #27272a;
+            border-radius: 9999px;
             outline: none;
+            transition: opacity .2s;
         }
         .styled-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: #dc2626;
+            background: #ef4444;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(220, 38, 38, 0.9);
-            transition: all 0.2s ease-in-out;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+            border: 2px solid #ffffff;
         }
-        .styled-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-            background: #f87171;
-        }
-
-        /* Active Tile Pulse */
-        .tile-active {
-            border-color: #ef4444 !important;
-            background: rgba(185, 28, 28, 0.35) !important;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), inset 0 0 12px rgba(239, 68, 68, 0.3) !important;
+        .styled-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ef4444;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+            border: 2px solid #ffffff;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-3 sm:p-6">
-    <div class="tech-grid"></div>
+<body class="min-h-screen flex items-center justify-center p-3 sm:p-6 bg-gradient-to-b from-[#111111] via-[#09090b] to-[#000000] selection:bg-red-900 selection:text-white">
     <div class="scanlines"></div>
 
-    <main class="glass-panel rounded-2xl p-5 sm:p-8 max-w-xl w-full text-center relative overflow-hidden transition-all duration-300">
-        <!-- Top Imperial Neon Accents -->
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent"></div>
-        <div class="absolute top-4 left-4 w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-        <div class="absolute top-4 right-4 text-xs text-red-500/60 orbitron tracking-widest">TK-421 // SITH-NET</div>
+    <!-- Main Container Frame -->
+    <div class="w-full max-w-lg bg-[#121316] border border-red-900/40 rounded-2xl p-4 sm:p-6 shadow-[0_0_40px_rgba(220,38,38,0.15)] relative overflow-hidden backdrop-blur-md text-center">
+        <!-- Top Status Bar -->
+        <div class="flex items-center justify-between border-b border-red-900/30 pb-3 mb-4 text-[11px] font-mono tracking-widest text-red-500/80">
+            <span>UNIT // TK-714</span>
+            <span class="flex items-center gap-1.5">
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                ONLINE
+            </span>
+        </div>
 
-        <h1 class="text-3xl sm:text-4xl font-black tracking-widest text-red-500 uppercase mb-1 orbitron drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] mt-3">
+        <h1 class="text-3xl sm:text-4xl font-black tracking-widest text-red-500 uppercase mb-1 orbitron drop-shadow-[0_0_10px_rgba(220,38,38,0.8)] mt-1">
             Comlink
         </h1>
         <p class="text-gray-400 text-xs sm:text-sm mb-5 uppercase tracking-widest border-b border-red-900/30 pb-3">Imperial Security Audio Console</p>
 
         <!-- Mode Navigation Switcher -->
-        <div class="grid grid-cols-2 gap-2 p-1.5 bg-black/60 rounded-xl border border-red-900/40 mb-6">
-            <button id="tabComlink" class="py-2.5 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
+        <div class="grid grid-cols-2 gap-2 p-1.5 bg-black/60 rounded-xl border border-red-900/40 mb-6 relative z-20">
+            <button id="tabComlink" type="button" class="tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
                 COMLINK
             </button>
-            <button id="tabSoundboard" class="py-2.5 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
+            <button id="tabSoundboard" type="button" class="tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
                 SOUNDBOARD
             </button>
         </div>
 
         <!-- ================= MODE 1: COMLINK ================= -->
-        <section id="viewComlink" class="block">
+        <section id="viewComlink" style="display: block;">
             <!-- Instruction Notice -->
             <div class="text-red-400 text-xs mb-4 orbitron bg-red-950/30 p-2.5 rounded-lg border border-red-900/40">
                 HOLD BUTTON TO RECORD • RELEASE TO TRANSMIT
             </div>
 
+            <!-- Comlink Master Volume Slider -->
+            <div class="mb-4 bg-black/40 p-3 rounded-xl border border-red-900/30 text-left">
+                <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls master output volume for your modulated voice and radio bursts.">
+                    <span class="cursor-help flex items-center gap-1 font-mono">Comlink Master Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                    <span id="valComlinkVol" class="font-mono text-red-400">40%</span>
+                </div>
+                <input type="range" id="comlinkVolSlider" min="0" max="1" step="0.05" value="0.4" class="styled-slider">
+            </div>
+
             <!-- Status Display -->
             <div id="statusDisplay" class="h-10 mb-4 flex items-center justify-center">
-                <span id="statusText" class="text-red-400 orbitron tracking-wider text-xs sm:text-sm bg-red-950/50 px-4 py-1.5 rounded border border-red-900/50">
-                    STANDBY
-                </span>
+                <div class="flex items-center space-x-2 bg-black/40 px-4 py-1.5 rounded-full border border-red-900/40">
+                    <span id="statusLight" class="w-3 h-3 rounded-full bg-gray-500 transition-colors duration-300"></span>
+                    <span id="statusText" class="orbitron text-xs tracking-wider text-gray-300 uppercase">STANDBY</span>
+                </div>
             </div>
 
-            <!-- Audio Visualizer Mockup -->
-            <div class="flex justify-center items-end h-14 gap-1 mb-6 opacity-50 transition-opacity duration-300" id="visualizer">
-                <!-- Bars injected by JavaScript -->
-            </div>
-
-            <!-- Massive Glove-Friendly Transmit Button -->
-            <div class="flex flex-col gap-4 mb-6">
-                <button id="actionBtn" class="w-full min-h-[190px] sm:min-h-[230px] text-2xl sm:text-3xl orbitron uppercase tracking-widest font-black text-white bg-gradient-to-b from-red-600 to-red-900 px-6 py-8 rounded-2xl border-2 border-red-500 shadow-[0_0_24px_rgba(220,38,38,0.5)] hover:shadow-[0_0_38px_rgba(220,38,38,0.8)] active:scale-[0.98] transition-all duration-150 focus:outline-none select-none cursor-pointer touch-none flex flex-col items-center justify-center gap-2">
-                    <span>Hold To Transmit</span>
-                    <span class="text-xs font-mono font-normal tracking-wider opacity-75">COMMUNICATION FREQUENCY 114.8</span>
+            <!-- Glove-Friendly Transmit Button -->
+            <div class="mb-6 flex justify-center">
+                <button id="transmitBtn" type="button" class="tab-btn w-44 h-44 sm:w-48 sm:h-48 rounded-full border-4 border-red-600 bg-red-950/40 text-red-400 hover:text-white flex flex-col items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 transition-all duration-150">
+                    <span class="orbitron font-black text-xl sm:text-2xl tracking-widest text-center px-2">TRANSMIT</span>
+                    <span class="text-[10px] tracking-widest font-mono text-red-400/80 mt-1 uppercase">PRESS & HOLD</span>
                 </button>
             </div>
 
-            <!-- Modulation Settings Panel -->
-            <div class="mt-6 border-t border-red-900/30 pt-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-red-500 orbitron text-xs tracking-widest uppercase">Modulation Settings</h3>
-                    <span class="text-[10px] text-gray-500 uppercase tracking-wider font-mono">Real-time Squelch DSP</span>
+            <!-- Settings Panel -->
+            <div class="bg-black/40 p-4 rounded-xl border border-red-900/30 text-left space-y-4">
+                <div class="border-b border-red-900/30 pb-2">
+                    <h2 class="orbitron text-xs font-bold text-red-400 uppercase tracking-wider">Acoustic Modulation Parameters</h2>
                 </div>
 
-                <div class="space-y-4 text-left">
-                    <!-- Distortion -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex justify-between text-xs text-gray-400" title="Increases the gritty, clipped, overdriven sound of your voice.">
-                            <span class="cursor-help flex items-center gap-1">Distortion Amount <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                            <span id="valDistortion" class="font-mono text-red-400">30</span>
-                        </div>
-                        <input type="range" id="distSlider" min="0" max="100" value="30" class="styled-slider">
+                <!-- Voice Pitch -->
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adjusts the pitch of your captured voice. Set below 1.0 for an authoritative, deeper trooper vocal tone.">
+                        <span class="cursor-help flex items-center gap-1 font-mono">Voice Pitch <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                        <span id="valPitch" class="font-mono text-red-400">0.85</span>
                     </div>
-
-                    <!-- Helmet Filter Cutoff -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex justify-between text-xs text-gray-400" title="Adjusts core voice bandpass. Lower is muffled; higher is tinny.">
-                            <span class="cursor-help flex items-center gap-1">Helmet Filter (Cutoff) <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                            <span id="valFreq" class="font-mono text-red-400">3500 Hz</span>
-                        </div>
-                        <input type="range" id="freqSlider" min="1000" max="6000" value="3500" step="100" class="styled-slider">
-                    </div>
-
-                    <!-- Resonance -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex justify-between text-xs text-gray-400" title="Adds a resonant peak, accentuating the hollow metallic comms radio tone.">
-                            <span class="cursor-help flex items-center gap-1">Resonance (Q) <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                            <span id="valQ" class="font-mono text-red-400">1.0</span>
-                        </div>
-                        <input type="range" id="qSlider" min="0.1" max="10" value="1.0" step="0.1" class="styled-slider">
-                    </div>
-
-                    <!-- Static Burst Volume -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex justify-between text-xs text-gray-400" title="Adjusts how loud the start and end radio squelches play.">
-                            <span class="cursor-help flex items-center gap-1">Static Burst Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                            <span id="valBurst" class="font-mono text-red-400">1.5</span>
-                        </div>
-                        <input type="range" id="burstSlider" min="0" max="3" value="1.5" step="0.1" class="styled-slider">
-                    </div>
-
-                    <!-- Burst Duration -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex justify-between text-xs text-gray-400" title="Controls the length of the radio squelch impulse.">
-                            <span class="cursor-help flex items-center gap-1">Burst Length <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                            <span id="valLength" class="font-mono text-red-400">0.30s</span>
-                        </div>
-                        <input type="range" id="lengthSlider" min="0.05" max="0.5" value="0.3" step="0.01" class="styled-slider">
-                    </div>
-
-                    <!-- Voice Pitch -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex justify-between text-xs text-gray-400" title="Changes playback pitch. Move left for a deeper Stormtrooper voice.">
-                            <span class="cursor-help flex items-center gap-1">Voice Pitch <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                            <span id="valPitch" class="font-mono text-red-400">0.85</span>
-                        </div>
-                        <input type="range" id="pitchSlider" min="0.5" max="1.5" value="0.85" step="0.05" class="styled-slider">
-                    </div>
+                    <input type="range" id="pitchSlider" min="0.6" max="1.4" step="0.05" value="0.85" class="styled-slider">
                 </div>
 
-                <button id="resetBtn" class="mt-6 w-full orbitron text-xs tracking-widest text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 py-2.5 rounded-lg transition-colors duration-200 uppercase cursor-pointer">
+                <!-- Distortion Level -->
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adds analog radio harmonics and clipping to give your voice a gritty, in-helmet sound.">
+                        <span class="cursor-help flex items-center gap-1 font-mono">Distortion (Clipping) <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                        <span id="valDist" class="font-mono text-red-400">30</span>
+                    </div>
+                    <input type="range" id="distSlider" min="0" max="100" step="5" value="30" class="styled-slider">
+                </div>
+
+                <!-- Static Squelch Burst Length -->
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Sets the duration of the radio pop and squelch noise played before and after speaking.">
+                        <span class="cursor-help flex items-center gap-1 font-mono">Burst Length <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                        <span id="valLength" class="font-mono text-red-400">0.30s</span>
+                    </div>
+                    <input type="range" id="lengthSlider" min="0.1" max="0.8" step="0.05" value="0.3" class="styled-slider">
+                </div>
+
+                <!-- Radio Burst Volume -->
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Controls how loudly the transmission clicks, pops, and squelches sound relative to your voice.">
+                        <span class="cursor-help flex items-center gap-1 font-mono">Burst Volume <span class="text-[10px] text-red-500/70">ⓘ</span></span>
+                        <span id="valBurst" class="font-mono text-red-400">80%</span>
+                    </div>
+                    <input type="range" id="burstSlider" min="0" max="1" step="0.05" value="0.8" class="styled-slider">
+                </div>
+
+                <!-- Reset Button -->
+                <button id="resetBtn" type="button" class="mt-4 w-full orbitron text-xs tracking-widest text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 py-2.5 rounded-lg transition-colors duration-200 uppercase cursor-pointer">
                     Reset Defaults
                 </button>
 
                 <!-- Centered Version Tracker -->
                 <div class="mt-3 text-center">
                     <span class="text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                        SYS VER // <span class="text-red-400 font-bold">v1.2.0</span>
+                        SYS VER // <span class="text-red-400 font-bold">v1.2.6</span>
                     </span>
                 </div>
             </div>
         </section>
 
         <!-- ================= MODE 2: SOUNDBOARD ================= -->
-        <section id="viewSoundboard" class="hidden text-left">
+        <section id="viewSoundboard" style="display: none;" class="text-left">
             <div class="flex items-center justify-between mb-4 border-b border-red-900/30 pb-3">
                 <span class="orbitron text-xs text-red-400 font-bold uppercase tracking-wider">Tactical Comms Logs (18 Clips)</span>
                 <span id="boardStatus" class="text-[11px] text-gray-400 font-mono">READY</span>
             </div>
 
-            <!-- Soundboard Master Volume Slider -->
-            <div class="mb-4 bg-black/40 p-3 rounded-xl border border-red-900/30">
-                <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls output playback volume for soundboard audio tracks.">
+            <!-- Soundboard Master Volume -->
+            <div class="mb-4 bg-black/40 p-3 rounded-xl border border-red-900/30 text-left">
+                <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls output playback volume for soundboard voice clips.">
                     <span class="cursor-help flex items-center gap-1 font-mono">Soundboard Master Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                    <span id="valSoundboardVol" class="font-mono text-red-400">80%</span>
+                    <span id="valSoundboardVol" class="font-mono text-red-400">75%</span>
                 </div>
-                <input type="range" id="soundboardVolSlider" min="0" max="1" step="0.05" value="0.8" class="styled-slider">
+                <input type="range" id="soundboardVolSlider" min="0" max="1" step="0.05" value="0.75" class="styled-slider">
             </div>
 
-            <!-- Soundboard Grid -->
-            <div id="soundGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[55vh] overflow-y-auto pr-1">
-                <!-- Injected via JavaScript -->
+            <!-- 18-Track Dynamic Audio Grid -->
+            <div id="soundboardGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto pr-1">
+                <!-- Dynamically generated buttons -->
             </div>
         </section>
-
-        <!-- Common Feedback Container -->
-        <div id="errorContainer" class="mt-4 text-red-400 text-xs hidden bg-red-950/60 p-2.5 rounded-lg border border-red-800">
-        </div>
-    </main>
+    </div>
 
     <script>
-        // --- Tab Switching ---
+        // --- Core Audio State ---
+        let audioContext = null;
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        // UI Element References
         const tabComlink = document.getElementById('tabComlink');
         const tabSoundboard = document.getElementById('tabSoundboard');
         const viewComlink = document.getElementById('viewComlink');
         const viewSoundboard = document.getElementById('viewSoundboard');
 
-        tabComlink.addEventListener('click', () => {
-            tabComlink.className = "py-2.5 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
-            tabSoundboard.className = "py-2.5 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
-            viewComlink.classList.remove('hidden');
-            viewSoundboard.classList.add('hidden');
-        });
-
-        tabSoundboard.addEventListener('click', () => {
-            tabSoundboard.className = "py-2.5 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
-            tabComlink.className = "py-2.5 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
-            viewSoundboard.classList.remove('hidden');
-            viewComlink.classList.add('hidden');
-        });
-
-        // --- UI & Slider Elements ---
-        const actionBtn = document.getElementById('actionBtn');
-        const statusText = document.getElementById('statusText');
-        const visualizer = document.getElementById('visualizer');
-        const errorContainer = document.getElementById('errorContainer');
-
         const distSlider = document.getElementById('distSlider');
-        const freqSlider = document.getElementById('freqSlider');
-        const qSlider = document.getElementById('qSlider');
-        const burstSlider = document.getElementById('burstSlider');
-        const lengthSlider = document.getElementById('lengthSlider');
         const pitchSlider = document.getElementById('pitchSlider');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const burstSlider = document.getElementById('burstSlider');
+        const comlinkVolSlider = document.getElementById('comlinkVolSlider');
+        const soundboardVolSlider = document.getElementById('soundboardVolSlider');
 
-        const valDistortion = document.getElementById('valDistortion');
-        const valFreq = document.getElementById('valFreq');
-        const valQ = document.getElementById('valQ');
-        const valBurst = document.getElementById('valBurst');
-        const valLength = document.getElementById('valLength');
+        const valDist = document.getElementById('valDist');
         const valPitch = document.getElementById('valPitch');
+        const valLength = document.getElementById('valLength');
+        const valBurst = document.getElementById('valBurst');
+        const valComlinkVol = document.getElementById('valComlinkVol');
+        const valSoundboardVol = document.getElementById('valSoundboardVol');
+
         const resetBtn = document.getElementById('resetBtn');
+        const transmitBtn = document.getElementById('transmitBtn');
+        const statusLight = document.getElementById('statusLight');
+        const statusText = document.getElementById('statusText');
 
-        // Slider value updates
-        distSlider.addEventListener('input', e => valDistortion.textContent = e.target.value);
-        freqSlider.addEventListener('input', e => valFreq.textContent = e.target.value + ' Hz');
-        qSlider.addEventListener('input', e => valQ.textContent = parseFloat(e.target.value).toFixed(1));
-        burstSlider.addEventListener('input', e => valBurst.textContent = parseFloat(e.target.value).toFixed(1));
-        lengthSlider.addEventListener('input', e => valLength.textContent = parseFloat(e.target.value).toFixed(2) + 's');
-        pitchSlider.addEventListener('input', e => valPitch.textContent = parseFloat(e.target.value).toFixed(2));
-
-        // Reset Settings Button
-        resetBtn.addEventListener('click', () => {
-            distSlider.value = 30;
-            freqSlider.value = 3500;
-            qSlider.value = 1.0;
-            burstSlider.value = 1.5;
-            lengthSlider.value = 0.3;
-            pitchSlider.value = 0.85;
-
-            valDistortion.textContent = "30";
-            valFreq.textContent = "3500 Hz";
-            valQ.textContent = "1.0";
-            valBurst.textContent = "1.5";
-            valLength.textContent = "0.30s";
-            valPitch.textContent = "0.85";
-        });
-
-        // --- Visualizer setup ---
-        for (let i = 0; i < 15; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'w-2 bg-red-600 rounded-t-sm transition-all duration-75 ease-out h-1';
-            visualizer.appendChild(bar);
-        }
-        const bars = visualizer.children;
-        let visualizerInterval;
-
-        function startVisualizerAnimation() {
-            if (visualizerInterval) clearInterval(visualizerInterval);
-            visualizerInterval = setInterval(() => {
-                for (let i = 0; i < bars.length; i++) {
-                    const height = Math.max(10, Math.random() * 100);
-                    bars[i].style.height = `${height}%`;
-                }
-            }, 75);
-        }
-
-        function stopVisualizerAnimation() {
-            if (visualizerInterval) clearInterval(visualizerInterval);
-            for (let i = 0; i < bars.length; i++) {
-                bars[i].style.height = '4px';
+        // --- Tab Switching with iOS Touch Resilience ---
+        function switchTab(mode) {
+            if (mode === 'comlink') {
+                tabComlink.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
+                tabSoundboard.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
+                viewComlink.style.display = 'block';
+                viewSoundboard.style.display = 'none';
+            } else if (mode === 'soundboard') {
+                tabSoundboard.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
+                tabComlink.className = "tab-btn py-3 px-3 rounded-lg orbitron text-xs sm:text-sm font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
+                viewComlink.style.display = 'none';
+                viewSoundboard.style.display = 'block';
             }
         }
 
-        // --- Audio System Variables ---
-        let audioContext;
-        let mediaStream;
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        let isPlaying = false;
+        function bindTab(btn, mode) {
+            btn.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                switchTab(mode);
+            });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchTab(mode);
+            });
+        }
 
-        async function initAudio() {
+        bindTab(tabComlink, 'comlink');
+        bindTab(tabSoundboard, 'soundboard');
+
+        // --- Status Helper ---
+        function updateStatus(text, bgClass) {
+            statusText.textContent = text;
+            statusLight.className = `w-3 h-3 rounded-full transition-colors duration-300 ${bgClass}`;
+        }
+
+        // --- Audio Initializer (Unlocks iOS AudioContext on Touch) ---
+        function initAudio() {
             if (!audioContext) {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                audioContext = new AudioCtx();
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContextClass();
             }
             if (audioContext.state === 'suspended') {
-                await audioContext.resume();
-            }
-            if (!mediaStream) {
-                try {
-                    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                } catch (err) {
-                    showError("Microphone access denied or unavailable. Check Safari permissions.");
-                    throw err;
-                }
+                audioContext.resume();
             }
         }
 
-        // --- Distortion Curve Maker ---
+        // --- Distortion Curve Generator ---
         function makeDistortionCurve(amount) {
             const k = typeof amount === 'number' ? amount : 50;
             const n_samples = 44100;
@@ -379,21 +298,19 @@
             const deg = Math.PI / 180;
             for (let i = 0; i < n_samples; ++i) {
                 const x = (i * 2) / n_samples - 1;
-                curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+                curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
             }
             return curve;
         }
 
-        // --- Synthesized Radio Squelches (Drill Pop & Pop/Hiss) ---
-        function playRadioBurst(isStart) {
-            if (!audioContext) return 0.15;
+        // --- Web Audio Synthesizer: Radio Static & Burst FX ---
+        function playRadioBurst(type) {
+            if (!audioContext) return 0;
             const now = audioContext.currentTime;
-            const burstVolume = parseFloat(burstSlider.value);
-            const baseDuration = parseFloat(lengthSlider.value);
-            
-            // Randomly pick Drill Pop (50%) or Pop & Hiss (50%)
-            const isPopHiss = Math.random() > 0.5;
-            const duration = isPopHiss ? baseDuration + 0.08 : Math.min(Math.max(baseDuration * 0.45, 0.12), 0.16);
+            const burstMult = parseFloat(burstSlider.value);
+            const userLength = parseFloat(lengthSlider.value);
+            const isPopHiss = Math.random() < 0.5;
+            const duration = isPopHiss ? (userLength + 0.1) : 0.14;
 
             const bufferSize = Math.max(1, Math.floor(audioContext.sampleRate * duration));
             const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
@@ -406,302 +323,331 @@
             const noiseSource = audioContext.createBufferSource();
             noiseSource.buffer = buffer;
             const gainNode = audioContext.createGain();
+            const comlinkMasterGain = audioContext.createGain();
+            comlinkMasterGain.gain.setValueAtTime(parseFloat(comlinkVolSlider.value), now);
 
             if (isPopHiss) {
                 // Dual stage comms squelch: HPF 900Hz, LPF 5000Hz (flat granular white noise)
-                const hp = audioContext.createBiquadFilter();
-                hp.type = 'highpass';
-                hp.frequency.setValueAtTime(900, now);
-                hp.Q.setValueAtTime(0.7, now);
+                const hpf = audioContext.createBiquadFilter();
+                hpf.type = 'highpass';
+                hpf.frequency.setValueAtTime(900, now);
+                hpf.Q.setValueAtTime(0.7, now);
 
-                const lp = audioContext.createBiquadFilter();
-                lp.type = 'lowpass';
-                lp.frequency.setValueAtTime(5000, now);
-                lp.Q.setValueAtTime(0.7, now);
+                const lpf = audioContext.createBiquadFilter();
+                lpf.type = 'lowpass';
+                lpf.frequency.setValueAtTime(5000, now);
+                lpf.Q.setValueAtTime(0.7, now);
 
-                // Initial micro-transient mechanical switch click
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(burstVolume * 1.4, now + 0.005);
-                gainNode.gain.setValueAtTime(burstVolume * 0.45, now + 0.012);
-                
-                const cutoff = Math.max(now + 0.02, now + duration - 0.035);
-                gainNode.gain.setValueAtTime(burstVolume * 0.45, cutoff);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                gainNode.gain.setValueAtTime(0.0001, now);
+                gainNode.gain.linearRampToValueAtTime(0.28 * burstMult, now + 0.004);
+                gainNode.gain.setValueAtTime(0.18 * burstMult, now + 0.015);
+                gainNode.gain.setValueAtTime(0.18 * burstMult, now + duration - 0.015);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
-                noiseSource.connect(hp);
-                hp.connect(lp);
-                lp.connect(gainNode);
+                noiseSource.connect(hpf);
+                hpf.connect(lpf);
+                lpf.connect(gainNode);
             } else {
-                // Drill Pop Profile: Sharp, resonant percussive metallic impulse pop
+                // Metallic "Drill Pop" transient impulse
                 const bp = audioContext.createBiquadFilter();
                 bp.type = 'bandpass';
-                bp.frequency.setValueAtTime(1750, now);
+                bp.frequency.setValueAtTime(1800, now);
                 bp.Q.setValueAtTime(4.0, now);
 
                 const dist = audioContext.createWaveShaper();
-                dist.curve = makeDistortionCurve(70);
+                dist.curve = makeDistortionCurve(15);
 
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(burstVolume * 2.4, now + 0.005);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                gainNode.gain.setValueAtTime(0.0001, now);
+                gainNode.gain.linearRampToValueAtTime(0.42 * burstMult, now + 0.003);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
                 noiseSource.connect(bp);
                 bp.connect(dist);
                 dist.connect(gainNode);
             }
 
-            gainNode.connect(audioContext.destination);
+            gainNode.connect(comlinkMasterGain);
+            comlinkMasterGain.connect(audioContext.destination);
             noiseSource.start(now);
             return duration;
         }
 
-        // --- Comlink Recording Logic ---
-        async function startRecording(e) {
-            if (e) e.preventDefault();
-            if (isRecording || isPlaying) return;
+        // --- Voice Recording & In-Helmet Modulation Processing ---
+        async function startRecording() {
+            if (isRecording) return;
+            initAudio();
 
             try {
-                await initAudio();
+                if (!mediaStream) {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { 
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        } 
+                    });
+                }
+
                 audioChunks = [];
                 mediaRecorder = new MediaRecorder(mediaStream);
 
-                mediaRecorder.ondataavailable = event => {
-                    if (event.data.size > 0) audioChunks.push(event.data);
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
                 };
 
-                mediaRecorder.onstop = processAndPlay;
-                mediaRecorder.start();
-                isRecording = true;
+                mediaRecorder.onstop = async () => {
+                    if (audioChunks.length === 0) {
+                        updateStatus('IDLE', 'bg-gray-500');
+                        transmitBtn.disabled = false;
+                        return;
+                    }
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await processAndPlay(audioBlob);
+                };
 
-                actionBtn.classList.add('recording-pulse');
-                actionBtn.classList.replace('from-red-600', 'from-red-800');
-                actionBtn.classList.replace('to-red-900', 'to-red-950');
-                statusText.textContent = "RECORDING...";
-                statusText.classList.replace('text-red-400', 'text-white');
-                statusText.classList.add('animate-pulse');
-                visualizer.classList.replace('opacity-50', 'opacity-100');
-                startVisualizerAnimation();
+                playRadioBurst('start');
+                mediaRecorder.start(50);
+                isRecording = true;
+                updateStatus('RECORDING...', 'bg-red-600 animate-pulse');
+                transmitBtn.classList.add('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
             } catch (err) {
-                console.error(err);
+                console.error("Mic access error:", err);
+                updateStatus('MIC PERMISSION REQ', 'bg-red-500');
+                isRecording = false;
             }
         }
 
-        function stopRecording(e) {
-            if (e) e.preventDefault();
+        function stopRecording() {
             if (!isRecording) return;
-
-            mediaRecorder.stop();
             isRecording = false;
-
-            actionBtn.classList.remove('recording-pulse');
-            actionBtn.classList.replace('from-red-800', 'from-red-600');
-            actionBtn.classList.replace('to-red-950', 'to-red-900');
-            statusText.textContent = "PROCESSING...";
-            statusText.classList.remove('animate-pulse');
-            stopVisualizerAnimation();
+            transmitBtn.classList.remove('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                updateStatus('PROCESSING...', 'bg-yellow-500');
+                transmitBtn.disabled = true;
+            }
         }
 
-        async function processAndPlay() {
-            if (audioChunks.length === 0) return setStandby();
-            isPlaying = true;
-
-            statusText.textContent = "TRANSMITTING";
-            statusText.classList.add('animate-pulse');
-            startVisualizerAnimation();
-
+        async function processAndPlay(blob) {
             try {
-                const audioBlob = new Blob(audioChunks);
-                const arrayBuffer = await audioBlob.arrayBuffer();
+                const arrayBuffer = await blob.arrayBuffer();
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                // Start squelch
-                const burstLen = playRadioBurst(true);
-                const startTime = audioContext.currentTime + burstLen;
+                updateStatus('TRANSMITTING...', 'bg-green-600');
+                
+                const burstDelay = playRadioBurst('start');
+                const startTime = audioContext.currentTime + (burstDelay * 0.7);
 
-                // Playback DSP Nodes
                 const source = audioContext.createBufferSource();
                 source.buffer = audioBuffer;
                 source.playbackRate.value = parseFloat(pitchSlider.value);
 
                 const highpass = audioContext.createBiquadFilter();
                 highpass.type = 'highpass';
-                highpass.frequency.value = 800;
-                highpass.Q.value = parseFloat(qSlider.value);
+                highpass.frequency.value = 450;
 
                 const lowpass = audioContext.createBiquadFilter();
                 lowpass.type = 'lowpass';
-                lowpass.frequency.value = parseFloat(freqSlider.value);
-                lowpass.Q.value = parseFloat(qSlider.value);
+                lowpass.frequency.value = 2800;
 
                 const distortion = audioContext.createWaveShaper();
                 distortion.curve = makeDistortionCurve(parseFloat(distSlider.value));
-                distortion.oversample = '4x';
 
                 const compressor = audioContext.createDynamicsCompressor();
-                compressor.threshold.value = -50;
+                compressor.threshold.value = -40;
                 compressor.knee.value = 0;
-                compressor.ratio.value = 20;
+                compressor.ratio.value = 16;
                 compressor.attack.value = 0.005;
                 compressor.release.value = 0.05;
 
                 const makeUpGain = audioContext.createGain();
-                makeUpGain.gain.value = 4.0;
+                makeUpGain.gain.value = 2.0;
+
+                const comlinkMasterGain = audioContext.createGain();
+                comlinkMasterGain.gain.value = parseFloat(comlinkVolSlider.value);
 
                 source.connect(highpass);
                 highpass.connect(lowpass);
                 lowpass.connect(distortion);
                 distortion.connect(compressor);
                 compressor.connect(makeUpGain);
-                makeUpGain.connect(audioContext.destination);
+                makeUpGain.connect(comlinkMasterGain);
+                comlinkMasterGain.connect(audioContext.destination);
 
                 source.start(startTime);
                 source.onended = () => {
-                    playRadioBurst(false);
-                    setTimeout(setStandby, 250);
+                    playRadioBurst('end');
+                    updateStatus('IDLE', 'bg-gray-500');
+                    transmitBtn.disabled = false;
                 };
             } catch (err) {
                 console.error("Playback error:", err);
-                setStandby();
+                updateStatus('PLAYBACK ERR', 'bg-red-500');
+                transmitBtn.disabled = false;
             }
         }
 
-        function setStandby() {
-            isPlaying = false;
-            statusText.textContent = "STANDBY";
-            statusText.classList.replace('text-white', 'text-red-400');
-            statusText.classList.remove('animate-pulse');
-            visualizer.classList.replace('opacity-100', 'opacity-50');
-            stopVisualizerAnimation();
-        }
+        // --- Transmit Button Touch & Pointer Listeners ---
+        transmitBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            startRecording();
+        });
 
-        function showError(msg) {
-            errorContainer.textContent = msg;
-            errorContainer.classList.remove('hidden');
-            setTimeout(() => errorContainer.classList.add('hidden'), 5000);
-        }
+        ['pointerup', 'pointercancel', 'mouseleave'].forEach(evt => {
+            transmitBtn.addEventListener(evt, (e) => {
+                if (isRecording) {
+                    e.preventDefault();
+                    stopRecording();
+                }
+            });
+        });
 
-        // Mouse & Touch listeners for transmit
-        actionBtn.addEventListener('mousedown', startRecording);
-        window.addEventListener('mouseup', stopRecording);
-        actionBtn.addEventListener('touchstart', startRecording, { passive: false });
-        window.addEventListener('touchend', stopRecording);
+        // --- Slider UI Feedback ---
+        distSlider.addEventListener('input', (e) => {
+            valDist.textContent = e.target.value;
+        });
+        pitchSlider.addEventListener('input', (e) => {
+            valPitch.textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        lengthSlider.addEventListener('input', (e) => {
+            valLength.textContent = `${parseFloat(e.target.value).toFixed(2)}s`;
+        });
+        burstSlider.addEventListener('input', (e) => {
+            valBurst.textContent = `${Math.round(e.target.value * 100)}%`;
+        });
+        comlinkVolSlider.addEventListener('input', (e) => {
+            valComlinkVol.textContent = `${Math.round(e.target.value * 100)}%`;
+        });
 
-        // --- Soundboard Clip Mapping (Exact filenames from repository) ---
-        const CLIPS = [
-            { id: 1,  name: "Alright men, load your weapons", file: "Alright men, load your weapons.mp3" },
-            { id: 2,  name: "Alright",                        file: "Alright.mp3" },
-            { id: 3,  name: "Follow me",                      file: "Follow me.mp3" },
-            { id: 4,  name: "Give me regular reports please", file: "Give me regular reports please.mp3" },
-            { id: 5,  name: "How long have you had these droids", file: "How long have you had these droids.mp3" },
-            { id: 6,  name: "It's them! Blast them!",         file: "It's them! Blast them.mp3" },
-            { id: 7,  name: "Let me see your ID",             file: "Let me see your ID.mp3" },
-            { id: 8,  name: "Look sir! Droids",               file: "Look sir! Droids.mp3" },
-            { id: 9,  name: "Look there!",                    file: "Look there!.mp3" },
-            { id: 10, name: "Maybe its another drill",        file: "Maybe its another drill.mp3" },
-            { id: 11, name: "Move along, move along",         file: "Move along, move along.mp3" },
-            { id: 12, name: "Stop that ship! Blast them!",    file: "Stop that ship! Blast them.mp3" },
-            { id: 13, name: "There's no one here",            file: "There's no one here.mp3" },
-            { id: 14, name: "There's one. Set for stun",      file: "There's one. Set for stun.mp3" },
-            { id: 15, name: "These aren't droids we're looking for", file: "These aren't droids we're looking for.mp3" },
-            { id: 16, name: "We don't need to see ID",        file: "We don't need to see ID.mp3" },
-            { id: 17, name: "You know whats going on",        file: "You know whats going on.mp3" },
-            { id: 18, name: "You stand guard",                file: "You stand guard.mp3" }
+        // --- Soundboard Engine ---
+        const SOUNDBOARD_TRACKS = [
+            "Alright men, load your weapons.mp3",
+            "Alright.mp3",
+            "Follow me.mp3",
+            "Give me regular reports please.mp3",
+            "How long have you had these droids.mp3",
+            "It's them! Blast them.mp3",
+            "Let me see your ID.mp3",
+            "Look sir! Droids.mp3",
+            "Look there!.mp3",
+            "Maybe its another drill.mp3",
+            "Move along, move along.mp3",
+            "Stop that ship! Blast them.mp3",
+            "There's no one here.mp3",
+            "There's one. Set for stun.mp3",
+            "These aren't droids we're looking for.mp3",
+            "We don't need to see ID.mp3",
+            "You know whats going on.mp3",
+            "You stand guard.mp3"
         ];
 
-        const soundGrid = document.getElementById('soundGrid');
-        const boardStatus = document.getElementById('boardStatus');
-        const soundboardVolSlider = document.getElementById('soundboardVolSlider');
-        const valSoundboardVol = document.getElementById('valSoundboardVol');
         let currentAudio = null;
-        let activeTileBtn = null;
+        let activeSoundBtn = null;
 
-        soundboardVolSlider.addEventListener('input', e => {
-            const vol = parseFloat(e.target.value);
-            valSoundboardVol.textContent = Math.round(vol * 100) + '%';
-            if (currentAudio) {
-                currentAudio.volume = vol;
-            }
-        });
-
-        // Resolve local file path with URI encoding for spaces, exclamation marks, etc.
-        function getSafeAudioUrl(filename) {
-            // Encode URI components cleanly to work on GitHub Pages web servers
-            const encoded = encodeURIComponent(filename)
-                .replace(/'/g, '%27')
-                .replace(/!/g, '%21')
-                .replace(/\(/g, '%28')
-                .replace(/\)/g, '%29');
-            return new URL(encoded, window.location.href).href;
+        if (soundboardVolSlider) {
+            soundboardVolSlider.addEventListener('input', (e) => {
+                valSoundboardVol.textContent = `${Math.round(e.target.value * 100)}%`;
+                if (currentAudio) {
+                    currentAudio.volume = parseFloat(e.target.value);
+                }
+            });
         }
 
-        // Populate Soundboard Grid
-        CLIPS.forEach((clip) => {
-            const btn = document.createElement('button');
-            btn.className = "flex items-center justify-between p-3 rounded-xl bg-black/40 border border-red-900/40 hover:border-red-600/70 hover:bg-red-950/20 active:scale-[0.98] transition-all duration-150 text-left group cursor-pointer";
-            btn.innerHTML = `
-                <div class="flex items-center gap-2.5 overflow-hidden">
-                    <span class="w-6 h-6 rounded-md bg-red-950/80 border border-red-900/60 flex items-center justify-center text-[10px] font-mono text-red-400 group-hover:text-white shrink-0">
-                        ${clip.id.toString().padStart(2, '0')}
-                    </span>
-                    <span class="text-xs text-gray-300 font-medium truncate group-hover:text-white">
-                        ${clip.name}
-                    </span>
-                </div>
-                <span class="text-[10px] text-red-500/60 group-hover:text-red-400 shrink-0 font-mono play-indicator">
-                    ▶
-                </span>
-            `;
+        function buildSoundboard() {
+            const grid = document.getElementById('soundboardGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
 
-            btn.addEventListener('click', () => playClip(clip, btn));
-            soundGrid.appendChild(btn);
-        });
+            SOUNDBOARD_TRACKS.forEach((trackName, idx) => {
+                const label = trackName.replace('.mp3', '');
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = "w-full text-left p-3 rounded-lg bg-black/40 border border-red-900/30 hover:border-red-600 transition-all text-xs font-mono text-gray-200 flex items-center justify-between group active:scale-[0.98] cursor-pointer";
+                btn.innerHTML = `
+                    <span class="truncate pr-2">${idx + 1}. ${label}</span>
+                    <span class="indicator text-red-500 font-bold group-hover:text-red-400">▶</span>
+                `;
 
-        async function playClip(clip, tileElement) {
-            // Unlock audio on iOS gesture
-            if (audioContext && audioContext.state === 'suspended') {
-                try { await audioContext.resume(); } catch (e) {}
-            }
+                btn.addEventListener('click', () => playTrack(trackName, btn));
+                grid.appendChild(btn);
+            });
+        }
 
-            // Stop existing audio if playing
+        function playTrack(fileName, buttonElem) {
+            initAudio();
+
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.currentTime = 0;
-            }
-            if (activeTileBtn) {
-                activeTileBtn.classList.remove('tile-active');
-                const prevIndicator = activeTileBtn.querySelector('.play-indicator');
-                if (prevIndicator) prevIndicator.textContent = '▶';
+                currentAudio = null;
+                if (activeSoundBtn) {
+                    activeSoundBtn.querySelector('.indicator').textContent = '▶';
+                    activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/40');
+                }
             }
 
-            activeTileBtn = tileElement;
-            activeTileBtn.classList.add('tile-active');
-            const playIndicator = tileElement.querySelector('.play-indicator');
-            if (playIndicator) playIndicator.textContent = '■';
-            boardStatus.textContent = `PLAYING: ${clip.name.toUpperCase()}`;
+            if (activeSoundBtn === buttonElem) {
+                activeSoundBtn = null;
+                document.getElementById('boardStatus').textContent = 'READY';
+                return;
+            }
 
-            const fileUrl = getSafeAudioUrl(clip.file);
-            const audio = new Audio(fileUrl);
-            audio.volume = parseFloat(soundboardVolSlider.value);
-            currentAudio = audio;
+            const encodedName = encodeURIComponent(fileName).replace(/%20/g, '%20').replace(/'/g, '%27').replace(/!/g, '%21');
+            const audio = new Audio(encodedName);
+            const volumeSlider = document.getElementById('soundboardVolSlider');
+            if (volumeSlider) {
+                audio.volume = parseFloat(volumeSlider.value);
+            }
 
             audio.play().then(() => {
+                currentAudio = audio;
+                activeSoundBtn = buttonElem;
+                buttonElem.querySelector('.indicator').textContent = '■';
+                buttonElem.classList.add('border-red-500', 'bg-red-950/40');
+                document.getElementById('boardStatus').textContent = 'PLAYING';
+
                 audio.onended = () => {
-                    activeTileBtn.classList.remove('tile-active');
-                    if (playIndicator) playIndicator.textContent = '▶';
-                    boardStatus.textContent = "READY";
+                    buttonElem.querySelector('.indicator').textContent = '▶';
+                    buttonElem.classList.remove('border-red-500', 'bg-red-950/40');
                     currentAudio = null;
+                    activeSoundBtn = null;
+                    document.getElementById('boardStatus').textContent = 'READY';
                 };
             }).catch(err => {
-                console.warn(`File "${clip.file}" failed to play from: ${fileUrl}`, err);
-                showError(`Playback error: "${clip.file}" not accessible.`);
-                boardStatus.textContent = `404: "${clip.file}"`;
-                activeTileBtn.classList.remove('tile-active');
-                if (playIndicator) playIndicator.textContent = '▶';
+                console.error("Audio playback error:", err);
+                document.getElementById('boardStatus').textContent = 'ERR: NOT FOUND';
                 setTimeout(() => {
-                    boardStatus.textContent = "READY";
+                    document.getElementById('boardStatus').textContent = 'READY';
                 }, 2500);
             });
         }
+
+        // --- Reset Defaults Handler ---
+        resetBtn.addEventListener('click', () => {
+            distSlider.value = 30;
+            valDist.textContent = '30';
+            pitchSlider.value = 0.85;
+            valPitch.textContent = '0.85';
+            lengthSlider.value = 0.3;
+            valLength.textContent = '0.30s';
+            burstSlider.value = 0.8;
+            valBurst.textContent = '80%';
+            comlinkVolSlider.value = 0.4;
+            valComlinkVol.textContent = '40%';
+            if (soundboardVolSlider) {
+                soundboardVolSlider.value = 0.75;
+                valSoundboardVol.textContent = '75%';
+                if (currentAudio) {
+                    currentAudio.volume = 0.75;
+                }
+            }
+        });
+
+        // Initialize soundboard grid upon loading
+        window.addEventListener('DOMContentLoaded', () => {
+            buildSoundboard();
+        });
     </script>
 </body>
 </html>
