@@ -134,6 +134,8 @@
             <!-- Top Status Bar -->
             <div class="flex items-center justify-between border-b border-red-900/30 pb-2 mb-2 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/80">
                 <span>UNIT // TK-421</span>
+                <!-- Auto Patrol Chatter Countdown Pill (Top Status Bar) -->
+                <span id="topPatrolCountdown" class="hidden px-2 py-0.5 rounded-full bg-blue-950/70 border border-blue-500/50 text-[9px] sm:text-[10px] text-blue-300 font-bold tracking-wider animate-pulse">PATROL: 45s</span>
                 <button id="topStatusBtn" type="button" class="tab-btn flex items-center gap-1.5 transition-all outline-none">
                     <span id="topStatusDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="topStatusLabel" class="text-gray-300">ONLINE</span>
@@ -226,6 +228,18 @@
                     <input type="range" id="voxHoldSlider" min="0.3" max="1.8" step="0.05" value="0.85" class="styled-slider">
                 </div>
 
+                <!-- Auto Patrol Chatter Toggle -->
+                <div class="pt-2 border-t border-red-900/40">
+                    <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                        <span class="font-mono">Auto Patrol Chatter</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="patrolChatterToggle" class="sr-only peer">
+                            <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-[10px] text-gray-500 font-mono">Plays random patrol comms every 20-60s after 2m idle.</p>
+                </div>
+
                 <!-- Reset Button -->
                 <button id="resetBtn" type="button" class="mt-3 w-full orbitron text-xs tracking-widest text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 py-2 rounded-lg transition-colors duration-200 uppercase cursor-pointer">
                     Reset Defaults
@@ -237,6 +251,11 @@
                 <div class="flex items-center space-x-2 bg-black/40 px-4 py-1 rounded-full border border-red-900/40">
                     <span id="statusLight" class="w-2.5 h-2.5 rounded-full bg-gray-500 transition-colors duration-300"></span>
                     <span id="statusText" class="orbitron text-xs tracking-wider text-gray-300 uppercase">STANDBY</span>
+                </div>
+                <!-- Patrol Chatter Countdown Badge -->
+                <div id="patrolCountdownBadge" class="hidden mt-1.5 flex items-center gap-1.5 bg-blue-950/60 border border-blue-500/50 px-3 py-0.5 rounded-full text-[10px] font-mono text-blue-400">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                    <span>NEXT PATROL: <strong id="patrolCountdownVal" class="text-blue-200">35s</strong></span>
                 </div>
             </div>
 
@@ -253,6 +272,11 @@
                     <div class="relative z-10 flex flex-col items-center justify-center bg-[#121316]/80 backdrop-blur-sm px-6 py-4 rounded-full border border-red-900/60 shadow-[0_0_15px_rgba(0,0,0,0.8)] group-active:bg-red-900/70 group-active:border-red-500/80 transition-all duration-150 pointer-events-none">
                         <span id="transmitBtnTitle" class="orbitron font-black text-2xl sm:text-3xl tracking-widest text-center px-2 text-red-400 group-active:text-white group-hover:text-red-300">TRANSMIT</span>
                         <span id="transmitBtnSub" class="text-[10px] sm:text-xs tracking-widest font-mono text-red-400/80 mt-2 uppercase group-active:text-red-200">PRESS & HOLD</span>
+                        
+                        <!-- Embedded VOX Meter (Fades in for VOX mode) -->
+                        <div id="voxMeterWrapper" class="w-full max-w-[120px] h-1.5 mt-2.5 bg-red-950/50 rounded-full overflow-hidden opacity-0 transition-opacity duration-300 shadow-inner">
+                            <div id="voxMeterBar" class="h-full w-0 bg-emerald-500 transition-all duration-75"></div>
+                        </div>
                     </div>
                 </button>
             </div>
@@ -345,7 +369,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.8.2</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.9.2</span>
             </button>
         </div>
     </div>
@@ -412,6 +436,8 @@
         const comlinkInstructions = document.getElementById('comlinkInstructions');
         const transmitBtnTitle = document.getElementById('transmitBtnTitle');
         const transmitBtnSub = document.getElementById('transmitBtnSub');
+        const voxMeterWrapper = document.getElementById('voxMeterWrapper');
+        const voxMeterBar = document.getElementById('voxMeterBar');
 
         const distSlider = document.getElementById('distSlider');
         const pitchSlider = document.getElementById('pitchSlider');
@@ -431,9 +457,118 @@
         const statusText = document.getElementById('statusText');
         const squelchStatusBadge = document.getElementById('squelchStatusBadge');
 
+        const patrolChatterToggle = document.getElementById('patrolChatterToggle');
+        const topPatrolCountdown = document.getElementById('topPatrolCountdown');
+        const patrolCountdownBadge = document.getElementById('patrolCountdownBadge');
+        const patrolCountdownVal = document.getElementById('patrolCountdownVal');
+
         const settingsToggleBtn = document.getElementById('settingsToggleBtn');
         const settingsPanel = document.getElementById('settingsPanel');
         const settingsToggleIcon = document.getElementById('settingsToggleIcon');
+
+        // Auto Patrol Chatter Timing State (2 Minutes Idle Gate)
+        const IDLE_PATROL_THRESHOLD = 2 * 60 * 1000; // 120,000 ms
+        let lastAudioRecordedTime = Date.now();
+        let nextPatrolTargetTime = 0;
+
+        function markAudioRecorded() {
+            lastAudioRecordedTime = Date.now();
+            nextPatrolTargetTime = 0;
+            if (topPatrolCountdown) topPatrolCountdown.classList.add('hidden');
+            if (patrolCountdownBadge) patrolCountdownBadge.classList.add('hidden');
+        }
+
+        function checkPatrolChatter() {
+            if (!patrolChatterToggle || !patrolChatterToggle.checked) {
+                if (topPatrolCountdown) topPatrolCountdown.classList.add('hidden');
+                if (patrolCountdownBadge) patrolCountdownBadge.classList.add('hidden');
+                nextPatrolTargetTime = 0;
+                return;
+            }
+
+            // If user is currently holding PTT, VOX is speaking, or Comlink is broadcasting
+            if (isRecording || isVoxRecording || isTransmitting) {
+                markAudioRecorded();
+                return;
+            }
+
+            const now = Date.now();
+            const idleElapsed = now - lastAudioRecordedTime;
+
+            // Condition: Must have at least 2 minutes of silence since last recording
+            if (idleElapsed < IDLE_PATROL_THRESHOLD) {
+                if (topPatrolCountdown) topPatrolCountdown.classList.add('hidden');
+                if (patrolCountdownBadge) patrolCountdownBadge.classList.add('hidden');
+                nextPatrolTargetTime = 0;
+                return;
+            }
+
+            // Condition IS met: Schedule randomized interval (20s - 60s)
+            if (nextPatrolTargetTime === 0) {
+                const randomDelaySec = Math.floor(Math.random() * (60 - 20 + 1)) + 20;
+                nextPatrolTargetTime = now + (randomDelaySec * 1000);
+            }
+
+            const msRemaining = nextPatrolTargetTime - now;
+            const secRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
+
+            // Show countdown timer on screen
+            if (topPatrolCountdown) {
+                topPatrolCountdown.classList.remove('hidden');
+                topPatrolCountdown.textContent = `PATROL: ${secRemaining}s`;
+            }
+            if (patrolCountdownBadge && patrolCountdownVal) {
+                patrolCountdownBadge.classList.remove('hidden');
+                patrolCountdownVal.textContent = `${secRemaining}s`;
+            }
+
+            // Trigger random patrol clip when timer expires
+            if (secRemaining <= 0) {
+                if (currentAudio) {
+                    nextPatrolTargetTime = now + 4000;
+                    return;
+                }
+
+                // Schedule the next interval before playing
+                const nextDelaySec = Math.floor(Math.random() * (60 - 20 + 1)) + 20;
+                nextPatrolTargetTime = now + (nextDelaySec * 1000);
+
+                const patrolTracks = JOYSTICK_CONFIGS.patrol;
+                if (patrolTracks && patrolTracks.length > 0) {
+                    const randomTrack = patrolTracks[Math.floor(Math.random() * patrolTracks.length)];
+                    playPatrolClip(randomTrack);
+                }
+            }
+        }
+
+        function playPatrolClip(track) {
+            if (!track) return;
+            updateStatus('PATROL CHATTER', 'bg-blue-500 animate-pulse');
+            if (topPatrolCountdown) topPatrolCountdown.textContent = 'PATROL: ACTIVE';
+            if (patrolCountdownVal) patrolCountdownVal.textContent = 'TRANSMITTING';
+
+            playCommsClip({
+                fileName: track.file,
+                text: track.fullLabel,
+                onStart: () => {},
+                onEnd: () => {
+                    if (comlinkMode === 'ptt') {
+                        updateStatus('STANDBY', 'bg-emerald-500');
+                    } else {
+                        updateStatus(isVoxArmed ? 'VOX LISTENING' : 'VOX READY', isVoxArmed ? 'bg-emerald-500' : 'bg-blue-500');
+                    }
+                }
+            });
+        }
+
+        if (patrolChatterToggle) {
+            patrolChatterToggle.addEventListener('change', () => {
+                markAudioRecorded();
+            });
+        }
+
+        // Ticker to check idle state & update countdown display
+        setInterval(checkPatrolChatter, 500);
 
         // --- Centralized Modal Visibility Management ---
         function showAuthModal() {
@@ -504,12 +639,20 @@
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                 comlinkInstructions.textContent = "HOLD BUTTON TO RECORD • RELEASE TO TRANSMIT";
+                if (voxMeterWrapper) {
+                    voxMeterWrapper.classList.remove('opacity-100');
+                    voxMeterWrapper.classList.add('opacity-0');
+                }
                 disarmVox();
                 updateStatus('STANDBY', 'bg-emerald-500');
             } else {
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                 comlinkInstructions.textContent = "TAP COG TO ARM VOX • HANDS-FREE BT TRANSMIT";
+                if (voxMeterWrapper) {
+                    voxMeterWrapper.classList.remove('opacity-0');
+                    voxMeterWrapper.classList.add('opacity-100');
+                }
                 updateStatus('VOX READY', 'bg-blue-500');
             }
             updateComlinkButtonUI();
@@ -920,6 +1063,7 @@
 
             // While Bluetooth speaker is speaking, pause listening to eliminate acoustic feedback
             if (isTransmitting) {
+                if (voxMeterBar) voxMeterBar.style.width = '0%';
                 voxAnimFrame = requestAnimationFrame(runVoxLoop);
                 return;
             }
@@ -944,11 +1088,28 @@
             // Hysteresis keep-alive: once speech starts, quiet syllables keep the channel open
             const activeThreshold = isVoxRecording ? (threshold * 0.48) : threshold;
 
+            // Update embedded VOX meter UI
+            if (voxMeterBar) {
+                const meterPct = Math.min(100, (smoothedDeviation / (threshold * 1.5)) * 100);
+                voxMeterBar.style.width = `${meterPct}%`;
+                if (smoothedDeviation > activeThreshold) {
+                    voxMeterBar.className = 'h-full bg-gradient-to-r from-yellow-400 to-red-500 transition-all duration-75';
+                } else {
+                    voxMeterBar.className = 'h-full bg-emerald-500 transition-all duration-75';
+                }
+            }
+
             if (smoothedDeviation > activeThreshold) {
                 lastSpeechTime = now;
                 if (!isVoxRecording) {
                     isVoxRecording = true;
+                    markAudioRecorded();
                     // Prepend rolling pre-roll buffer so starting consonants are never cut off
+                    voxRecordedBuffers = [...preRollBuffers];
+                    updateStatus('VOX RECORDING...', 'bg-red-600 animate-pulse');
+                    updateComlinkButtonUI();
+                    transmitBtn.classList.add('scale-95');
+
                     voxRecordedBuffers = [...preRollBuffers];
                     updateStatus('VOX RECORDING...', 'bg-red-600 animate-pulse');
                     updateComlinkButtonUI();
@@ -989,6 +1150,7 @@
             isTransmitting = false;
             voxRecordedBuffers = [];
             if (voxAnimFrame) cancelAnimationFrame(voxAnimFrame);
+            if (voxMeterBar) voxMeterBar.style.width = '0%';
             if (comlinkMode === 'vox') {
                 updateStatus('VOX READY', 'bg-blue-500');
             }
@@ -1001,6 +1163,7 @@
                 updateComlinkButtonUI();
                 return;
             }
+            markAudioRecorded();
 
             let totalSamples = 0;
             for (let b of buffers) totalSamples += b.length;
@@ -1035,6 +1198,7 @@
             if (!isCommsReady || isRecording) return;
             initAudio();
             primeAudioPlayer();
+            markAudioRecorded();
 
             recordedBuffers = [...preRollBuffers];
             isRecording = true;
@@ -1056,6 +1220,7 @@
         }
 
         function processAndPlayPCM(buffers) {
+            markAudioRecorded();
             if (!buffers || buffers.length === 0) {
                 updateStatus('STANDBY', 'bg-emerald-500');
                 transmitBtn.disabled = false;
@@ -1668,12 +1833,17 @@
             valVoxSens.textContent = '25';
             voxHoldSlider.value = 0.85;
             valVoxHold.textContent = '0.85s';
+            if (patrolChatterToggle) {
+                patrolChatterToggle.checked = false;
+            }
+            markAudioRecorded();
         });
 
         // Initialize joystick pods & default comlink view on load
         window.addEventListener('DOMContentLoaded', () => {
             loadJoystickCategory('halloween');
             switchTab('comlink');
+            markAudioRecorded();
         });
     </script>
 </body>
