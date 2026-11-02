@@ -108,9 +108,14 @@
             <p id="authPromptText" class="text-xs text-gray-300 font-mono mb-6 max-w-xs leading-relaxed">
                 Imperial comms protocol requires secure microphone authorization to operate helmet transmitter.
             </p>
-            <button id="activateCommsBtn" type="button" class="tab-btn w-full py-4 px-6 bg-red-600 hover:bg-red-500 text-white font-bold orbitron text-xs sm:text-sm tracking-widest rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.7)] active:scale-95 transition-all">
-                INITIALIZE COMMS UNIT
-            </button>
+            <div class="w-full max-w-xs space-y-2.5">
+                <button id="activateCommsBtn" type="button" class="tab-btn w-full py-3.5 px-6 bg-red-600 hover:bg-red-500 text-white font-bold orbitron text-xs sm:text-sm tracking-widest rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.7)] active:scale-95 transition-all">
+                    INITIALIZE COMMS UNIT
+                </button>
+                <button id="bypassAuthBtn" type="button" class="tab-btn w-full py-2.5 px-4 bg-black/60 hover:bg-red-950/40 text-gray-400 hover:text-red-300 border border-red-900/40 font-mono text-[10px] sm:text-xs tracking-wider rounded-xl transition-all">
+                    BYPASS TO SOUNDBOARD (NO MIC)
+                </button>
+            </div>
         </div>
 
         <!-- Hidden Audio Element for Bluetooth Speaker Routing -->
@@ -338,8 +343,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.4.2</span>
-                <span id="versionIcon" class="text-[9px] text-red-400 opacity-75">🔄</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.4.4</span>
             </button>
         </div>
     </div>
@@ -377,6 +381,7 @@
         // UI Element References
         const authModal = document.getElementById('authModal');
         const activateCommsBtn = document.getElementById('activateCommsBtn');
+        const bypassAuthBtn = document.getElementById('bypassAuthBtn');
         const authPromptText = document.getElementById('authPromptText');
         const liveAudioSink = document.getElementById('liveAudioSink');
 
@@ -644,8 +649,8 @@
                 updateStatus('STANDBY', 'bg-emerald-500');
             } catch (err) {
                 console.error("Mic authorization error:", err);
-                authPromptText.textContent = "ACCESS BLOCKED: PLEASE ENABLE MICROPHONE PERMISSION IN SITE SETTINGS.";
-                activateCommsBtn.textContent = "RETRY AUTHORIZATION";
+                authPromptText.innerHTML = "ACCESS BLOCKED. Tap <span class='text-red-400 font-bold'>'aA'</span> in Safari address bar &rarr; <span class='text-red-400 font-bold'>Website Settings</span> &rarr; enable <span class='text-red-400 font-bold'>Microphone</span>, or proceed to Soundboard below.";
+                activateCommsBtn.textContent = "RETRY PERMISSION";
             }
         }
 
@@ -653,6 +658,16 @@
             e.preventDefault();
             setupCommsPipeline();
         });
+
+        if (bypassAuthBtn) {
+            bypassAuthBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                initAudio();
+                authModal.style.display = 'none';
+                switchTab('joystick');
+                updateStatus('MIC OFFLINE', 'bg-yellow-600');
+            });
+        }
 
         // --- Web Audio Synthesizer: Radio Static & Burst FX ---
         function playRadioBurst(type) {
@@ -1395,13 +1410,11 @@
         // --- Interactive Version Tracker (Tap to Force Refresh & Update) ---
         const versionReloadBtn = document.getElementById('versionReloadBtn');
         const versionText = document.getElementById('versionText');
-        const versionIcon = document.getElementById('versionIcon');
 
         if (versionReloadBtn) {
             versionReloadBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (versionText) versionText.textContent = "CHECKING...";
-                if (versionIcon) versionIcon.classList.add('animate-spin');
+                if (versionText) versionText.textContent = "RELOADING...";
 
                 setTimeout(() => {
                     const url = new URL(window.location.href);
