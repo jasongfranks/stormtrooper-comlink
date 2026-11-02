@@ -133,7 +133,7 @@
         <div>
             <!-- Top Status Bar -->
             <div class="flex items-center justify-between border-b border-red-900/30 pb-2 mb-2 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/80">
-                <span>UNIT // TK-714</span>
+                <span>UNIT // TK-421</span>
                 <button id="topStatusBtn" type="button" class="tab-btn flex items-center gap-1.5 transition-all outline-none">
                     <span id="topStatusDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="topStatusLabel" class="text-gray-300">ONLINE</span>
@@ -232,15 +232,11 @@
                 </button>
             </div>
 
-            <!-- Status Display & VOX Level Bar -->
-            <div id="statusDisplay" class="my-3 flex flex-col items-center justify-center shrink-0 space-y-1.5">
+            <!-- Status Display -->
+            <div id="statusDisplay" class="my-3 flex flex-col items-center justify-center shrink-0">
                 <div class="flex items-center space-x-2 bg-black/40 px-4 py-1 rounded-full border border-red-900/40">
                     <span id="statusLight" class="w-2.5 h-2.5 rounded-full bg-gray-500 transition-colors duration-300"></span>
                     <span id="statusText" class="orbitron text-xs tracking-wider text-gray-300 uppercase">STANDBY</span>
-                </div>
-                <!-- Speech Energy Meter for VOX -->
-                <div id="voxMeterContainer" class="hidden w-48 h-1.5 bg-black/60 rounded-full border border-red-900/40 overflow-hidden">
-                    <div id="voxMeterBar" class="h-full w-0 bg-red-500 transition-all duration-75"></div>
                 </div>
             </div>
 
@@ -349,7 +345,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.8.1</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.8.2</span>
             </button>
         </div>
     </div>
@@ -433,8 +429,6 @@
         const transmitBtn = document.getElementById('transmitBtn');
         const statusLight = document.getElementById('statusLight');
         const statusText = document.getElementById('statusText');
-        const voxMeterContainer = document.getElementById('voxMeterContainer');
-        const voxMeterBar = document.getElementById('voxMeterBar');
         const squelchStatusBadge = document.getElementById('squelchStatusBadge');
 
         const settingsToggleBtn = document.getElementById('settingsToggleBtn');
@@ -510,14 +504,12 @@
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                 comlinkInstructions.textContent = "HOLD BUTTON TO RECORD • RELEASE TO TRANSMIT";
-                voxMeterContainer.classList.add('hidden');
                 disarmVox();
                 updateStatus('STANDBY', 'bg-emerald-500');
             } else {
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                 comlinkInstructions.textContent = "TAP COG TO ARM VOX • HANDS-FREE BT TRANSMIT";
-                voxMeterContainer.classList.remove('hidden');
                 updateStatus('VOX READY', 'bg-blue-500');
             }
             updateComlinkButtonUI();
@@ -952,13 +944,6 @@
             // Hysteresis keep-alive: once speech starts, quiet syllables keep the channel open
             const activeThreshold = isVoxRecording ? (threshold * 0.48) : threshold;
 
-            // Update HUD Speech Energy Meter
-            const meterPct = Math.min(100, Math.round((smoothedDeviation / 64) * 100));
-            voxMeterBar.style.width = `${meterPct}%`;
-            voxMeterBar.className = smoothedDeviation > activeThreshold 
-                ? 'h-full bg-red-500 transition-all duration-75 shadow-[0_0_8px_rgba(239,68,68,0.8)]' 
-                : 'h-full bg-gray-600 transition-all duration-75';
-
             if (smoothedDeviation > activeThreshold) {
                 lastSpeechTime = now;
                 if (!isVoxRecording) {
@@ -1004,7 +989,6 @@
             isTransmitting = false;
             voxRecordedBuffers = [];
             if (voxAnimFrame) cancelAnimationFrame(voxAnimFrame);
-            voxMeterBar.style.width = '0%';
             if (comlinkMode === 'vox') {
                 updateStatus('VOX READY', 'bg-blue-500');
             }
