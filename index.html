@@ -86,8 +86,8 @@
     <div class="w-full max-w-lg h-[98dvh] max-h-[760px] bg-[#121316] border border-red-900/40 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(220,38,38,0.15)] relative flex flex-col justify-between backdrop-blur-md text-center overflow-hidden">
         <!-- Mic Authorization Overlay Modal -->
         <div id="authModal" class="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
-            <div class="w-16 h-16 rounded-full border-2 border-red-500/80 bg-red-950/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)]">
-                <span class="text-2xl text-red-500">🔒</span>
+            <div class="w-20 h-20 rounded-full border-2 border-red-500/80 bg-red-950/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)] overflow-hidden">
+                <img src="https://jasongfranks.github.io/stormtrooper-comlink/loading.gif" alt="Initializing" class="w-full h-full object-cover opacity-90 mix-blend-screen" onerror="this.outerHTML='<span class=\'text-2xl text-red-500\'>🔒</span>'">
             </div>
             <h2 class="orbitron font-bold text-lg text-red-500 uppercase tracking-widest mb-2">Comlink Standby</h2>
             <p id="authPromptText" class="text-xs text-gray-300 font-mono mb-6 max-w-xs leading-relaxed">
@@ -108,16 +108,13 @@
                 </span>
             </div>
 
-            <!-- Mode Navigation Switcher (3 Tabs) -->
-            <div class="grid grid-cols-3 gap-1.5 p-1 bg-black/60 rounded-xl border border-red-900/40 mb-3 relative z-20">
+            <!-- Mode Navigation Switcher (2 Tabs) -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-black/60 rounded-xl border border-red-900/40 mb-3 relative z-20">
                 <button id="tabComlink" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
                     COMLINK
                 </button>
                 <button id="tabJoystick" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
-                    JOYSTICK
-                </button>
-                <button id="tabSoundboard" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
-                    BOARD
+                    SOUNDBOARD
                 </button>
             </div>
         </div>
@@ -196,6 +193,13 @@
 
         <!-- ================= MODE 2: JOYSTICK (FULL SCREEN RADIAL RADAR) ================= -->
         <section id="viewJoystick" style="display: flex;" class="flex-1 flex-col justify-between overflow-hidden select-none">
+            <!-- Soundboard Categories -->
+            <div class="grid grid-cols-3 gap-1 mb-2 text-[10px] font-bold orbitron shrink-0">
+                <button id="joyCatHalloween" type="button" class="tab-btn py-2 px-1 rounded-lg bg-orange-600 text-white border border-orange-500 text-center shadow-[0_0_10px_rgba(234,88,12,0.4)] transition-all">HALLOWEEN</button>
+                <button id="joyCatCombat" type="button" class="tab-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center">COMBAT</button>
+                <button id="joyCatPatrol" type="button" class="tab-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center">PATROL</button>
+            </div>
+
             <!-- Active Target / Transmission HUD -->
             <div class="h-9 mb-1 flex items-center justify-center bg-black/60 rounded-xl border border-red-900/40 px-3 shrink-0">
                 <span id="joyHud" class="orbitron text-xs font-bold text-red-500/90 tracking-wider truncate">[ RADIAL // READY ]</span>
@@ -203,52 +207,59 @@
 
             <!-- Central Radial Radar Arena (Fills Space, No Scroll) -->
             <div id="joystickArena" class="relative w-full max-w-[340px] aspect-square mx-auto my-auto flex items-center justify-center select-none" style="touch-action: none;">
-                <!-- Radar Visual Backgrounds (Imperial Red Theme) -->
-                <div class="absolute inset-2 rounded-full border-2 border-red-900/30 pointer-events-none"></div>
+                <!-- Radar Visual Backgrounds (Imperial Red Theme) & Pie Chart Sectors -->
+                <div class="absolute inset-2 rounded-full border-2 border-red-900/30 pointer-events-none overflow-hidden flex items-center justify-center">
+                    <!-- 8-Way Pie Chart Sector Dividers -->
+                    <div class="absolute w-[150%] h-px bg-red-900/40 rotate-[22.5deg]"></div>
+                    <div class="absolute w-[150%] h-px bg-red-900/40 rotate-[67.5deg]"></div>
+                    <div class="absolute w-[150%] h-px bg-red-900/40 rotate-[112.5deg]"></div>
+                    <div class="absolute w-[150%] h-px bg-red-900/40 rotate-[157.5deg]"></div>
+                </div>
                 <div class="absolute w-44 h-44 rounded-full border border-red-900/40 pointer-events-none"></div>
                 <div class="absolute w-20 h-20 rounded-full border border-dashed border-red-600/40 pointer-events-none"></div>
+                <!-- Main Crosshairs -->
                 <div class="absolute w-full h-px bg-red-900/20 pointer-events-none"></div>
                 <div class="absolute h-full w-px bg-red-900/20 pointer-events-none"></div>
 
                 <!-- 8 Permanent Radial Sayings (Clockwise from North) -->
-                <!-- 1. North: There's no one here -->
+                <!-- 0. North -->
                 <div id="joyPod0" class="joy-pod absolute top-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    1. NO ONE HERE
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 2. North-East: Let me see your ID -->
+                <!-- 1. North-East -->
                 <div id="joyPod1" class="joy-pod absolute top-7 right-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    2. SEE YOUR ID
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 3. East: We don't need to see ID -->
+                <!-- 2. East -->
                 <div id="joyPod2" class="joy-pod absolute top-1/2 right-0 -translate-y-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    3. DON'T NEED ID
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 4. South-East: Move along, move along -->
+                <!-- 3. South-East -->
                 <div id="joyPod3" class="joy-pod absolute bottom-7 right-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    4. MOVE ALONG
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 5. South: Look there! -->
+                <!-- 4. South -->
                 <div id="joyPod4" class="joy-pod absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    5. LOOK THERE!
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 6. South-West: Follow me -->
+                <!-- 5. South-West -->
                 <div id="joyPod5" class="joy-pod absolute bottom-7 left-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    6. FOLLOW ME
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 7. West: You stand guard -->
+                <!-- 6. West -->
                 <div id="joyPod6" class="joy-pod absolute top-1/2 left-0 -translate-y-1/2 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    7. STAND GUARD
+                    <!-- Dynamic -->
                 </div>
 
-                <!-- 8. North-West: Alright men, load your weapons -->
+                <!-- 7. North-West -->
                 <div id="joyPod7" class="joy-pod absolute top-7 left-1 px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150">
-                    8. LOAD WEAPONS
+                    <!-- Dynamic -->
                 </div>
 
                 <!-- Interactive Joystick Puck (Imperial Red Theme) -->
@@ -258,41 +269,10 @@
             </div>
         </section>
 
-        <!-- ================= MODE 3: SOUNDBOARD ================= -->
-        <section id="viewSoundboard" style="display: none;" class="flex-1 overflow-y-auto text-left pr-1">
-            <div class="flex items-center justify-between mb-2 border-b border-red-900/30 pb-1.5">
-                <span class="orbitron text-xs text-red-400 font-bold uppercase tracking-wider">Tactical Comms Logs (18 Clips)</span>
-                <span id="boardStatus" class="text-[11px] text-gray-400 font-mono">READY</span>
-            </div>
-
-            <!-- Soundboard Master Volume -->
-            <div class="mb-3 bg-black/40 p-2.5 rounded-xl border border-red-900/30 text-left">
-                <div class="flex justify-between text-xs text-gray-400 mb-1" title="Controls output playback volume for soundboard voice clips.">
-                    <span class="font-mono">Soundboard Master Vol</span>
-                    <span id="valSoundboardVol" class="font-mono text-red-400">75%</span>
-                </div>
-                <input type="range" id="soundboardVolSlider" min="0" max="1" step="0.05" value="0.75" class="styled-slider">
-            </div>
-
-            <!-- Category Filter Chips -->
-            <div class="grid grid-cols-5 gap-1 mb-3 text-[10px] font-bold orbitron">
-                <button id="filterAll" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-red-600 text-white border border-red-500 text-center">ALL</button>
-                <button id="filterGuests" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-orange-400 border border-orange-900/50 text-center">GUESTS</button>
-                <button id="filterDroids" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-amber-400 border border-amber-900/50 text-center">DROIDS</button>
-                <button id="filterCombat" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-red-400 border border-red-900/50 text-center">COMBAT</button>
-                <button id="filterPatrol" type="button" class="cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-blue-400 border border-blue-900/50 text-center">PATROL</button>
-            </div>
-
-            <!-- Glove-Friendly Dynamic Grouped Audio Grid -->
-            <div id="soundboardGrid" class="space-y-3 pb-2">
-                <!-- Dynamically generated categorized buttons -->
-            </div>
-        </section>
-
         <!-- Centered Version Tracker & Imperial ID Footer -->
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <span class="text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                SYS VER // <span class="text-red-400 font-bold">v1.6.1</span>
+                SYS VER // <span class="text-red-400 font-bold">v2.2.0</span>
             </span>
         </div>
     </div>
@@ -317,11 +297,9 @@
 
         const tabComlink = document.getElementById('tabComlink');
         const tabJoystick = document.getElementById('tabJoystick');
-        const tabSoundboard = document.getElementById('tabSoundboard');
 
         const viewComlink = document.getElementById('viewComlink');
         const viewJoystick = document.getElementById('viewJoystick');
-        const viewSoundboard = document.getElementById('viewSoundboard');
 
         const distSlider = document.getElementById('distSlider');
         const pitchSlider = document.getElementById('pitchSlider');
@@ -340,12 +318,11 @@
         const statusLight = document.getElementById('statusLight');
         const statusText = document.getElementById('statusText');
 
-        // --- 3-Way Tab Switching with iOS Touch Resilience ---
+        // --- 2-Way Tab Switching with iOS Touch Resilience ---
         function switchTab(mode) {
             const tabs = [
                 { id: 'comlink', tab: tabComlink, view: viewComlink, display: 'block' },
-                { id: 'joystick', tab: tabJoystick, view: viewJoystick, display: 'flex' },
-                { id: 'soundboard', tab: tabSoundboard, view: viewSoundboard, display: 'block' }
+                { id: 'joystick', tab: tabJoystick, view: viewJoystick, display: 'flex' }
             ];
 
             tabs.forEach(t => {
@@ -372,7 +349,6 @@
 
         bindTab(tabComlink, 'comlink');
         bindTab(tabJoystick, 'joystick');
-        bindTab(tabSoundboard, 'soundboard');
 
         // --- Status Helper ---
         function updateStatus(text, bgClass) {
@@ -649,34 +625,78 @@
             valBurst.textContent = `${Math.round(e.target.value * 100)}%`;
         });
 
-        // --- RADIAL JOYSTICK ENGINE (PERMANENT DOM & RED THEME) ---
-        const JOYSTICK_TRACKS = [
-            { index: 0, file: "There's no one here.mp3", fullLabel: "1. There's no one here" },
-            { index: 1, file: "Let me see your ID.mp3", fullLabel: "2. Let me see your ID" },
-            { index: 2, file: "We don't need to see ID.mp3", fullLabel: "3. We don't need to see ID" },
-            { index: 3, file: "Move along, move along.mp3", fullLabel: "4. Move along, move along" },
-            { index: 4, file: "Look there!.mp3", fullLabel: "5. Look there!" },
-            { index: 5, file: "Follow me.mp3", fullLabel: "6. Follow me" },
-            { index: 6, file: "You stand guard.mp3", fullLabel: "7. You stand guard" },
-            { index: 7, file: "Alright men, load your weapons.mp3", fullLabel: "8. Alright men, load your weapons" }
-        ];
+        // --- MULTI-CATEGORY RADIAL JOYSTICK ENGINE ---
+        const JOYSTICK_CONFIGS = {
+            halloween: [
+                { sector: 0, file: "There's no one here.mp3", fullLabel: "1. NO ONE HERE" },
+                { sector: 1, file: "Let me see your ID.mp3", fullLabel: "2. SEE YOUR ID" },
+                { sector: 2, file: "We don't need to see ID.mp3", fullLabel: "3. DON'T NEED ID" },
+                { sector: 3, file: "Move along, move along.mp3", fullLabel: "4. MOVE ALONG" },
+                { sector: 4, file: "Look there!.mp3", fullLabel: "5. LOOK THERE" },
+                { sector: 5, file: "Follow me.mp3", fullLabel: "6. FOLLOW ME" },
+                { sector: 6, file: "You stand guard.mp3", fullLabel: "7. STAND GUARD" }
+            ],
+            combat: [
+                { sector: 0, file: "Alright men, load your weapons.mp3", fullLabel: "LOAD WEAPONS" },
+                { sector: 2, file: "Stop that ship! Blast them.mp3", fullLabel: "STOP THAT SHIP" },
+                { sector: 4, file: "There's one. Set for stun.mp3", fullLabel: "SET FOR STUN" },
+                { sector: 6, file: "It's them! Blast them.mp3", fullLabel: "IT'S THEM" }
+            ],
+            patrol: [
+                { sector: 0, file: "Give me regular reports please.mp3", fullLabel: "REGULAR REPORTS" },
+                { sector: 2, file: "Maybe its another drill.mp3", fullLabel: "ANOTHER DRILL" },
+                { sector: 4, file: "You know whats going on.mp3", fullLabel: "WHATS GOING ON" },
+                { sector: 6, file: "Alright.mp3", fullLabel: "ALRIGHT" }
+            ]
+        };
 
         const joystickArena = document.getElementById('joystickArena');
         const joystickPuck = document.getElementById('joystickPuck');
         const joyHud = document.getElementById('joyHud');
 
+        let activeJoystickCategory = 'halloween';
+        let currentJoystickTracks = JOYSTICK_CONFIGS['halloween'];
+
         let isJoystickActive = false;
         let activeTargetIndex = null;
-        let activeJoyPodElem = null;
 
         const DEADZONE = 24;
         const MAX_TRAVEL = 50;
+
+        function loadJoystickCategory(catId) {
+            activeJoystickCategory = catId;
+            currentJoystickTracks = JOYSTICK_CONFIGS[catId];
+            
+            // Tab styling
+            document.getElementById('joyCatHalloween').className = catId === 'halloween' ? "tab-btn py-2 px-1 rounded-lg bg-orange-600 text-white border border-orange-500 text-center shadow-[0_0_10px_rgba(234,88,12,0.4)] transition-all" : "tab-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
+            document.getElementById('joyCatCombat').className = catId === 'combat' ? "tab-btn py-2 px-1 rounded-lg bg-red-600 text-white border border-red-500 text-center shadow-[0_0_10px_rgba(220,38,38,0.4)] transition-all" : "tab-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
+            document.getElementById('joyCatPatrol').className = catId === 'patrol' ? "tab-btn py-2 px-1 rounded-lg bg-blue-600 text-white border border-blue-500 text-center shadow-[0_0_10px_rgba(37,99,235,0.4)] transition-all" : "tab-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
+
+            // Update Pod visibility and text
+            for (let i = 0; i < 8; i++) {
+                const pod = document.getElementById(`joyPod${i}`);
+                if (!pod) continue;
+                const track = currentJoystickTracks.find(t => t.sector === i);
+                if (track) {
+                    pod.textContent = track.fullLabel;
+                    pod.style.display = 'block';
+                } else {
+                    pod.style.display = 'none';
+                }
+            }
+            clearAllPodHighlights();
+        }
+
+        document.getElementById('joyCatHalloween').addEventListener('click', () => loadJoystickCategory('halloween'));
+        document.getElementById('joyCatCombat').addEventListener('click', () => loadJoystickCategory('combat'));
+        document.getElementById('joyCatPatrol').addEventListener('click', () => loadJoystickCategory('patrol'));
 
         function clearAllPodHighlights() {
             for (let i = 0; i < 8; i++) {
                 const pod = document.getElementById(`joyPod${i}`);
                 if (pod) {
-                    pod.className = "joy-pod absolute px-2 py-1 rounded-md border border-red-900/50 bg-[#121316]/90 text-[10px] sm:text-[11px] font-black tracking-wider text-gray-300 orbitron pointer-events-none z-10 whitespace-nowrap shadow-md transition-all duration-150";
+                    pod.classList.remove('border-2', 'border-red-500', 'bg-red-950', 'text-white', 'shadow-[0_0_20px_rgba(239,68,68,0.9)]', 'scale-110');
+                    pod.classList.add('border-red-900/50', 'bg-[#121316]/90', 'text-gray-300');
                 }
             }
         }
@@ -685,7 +705,8 @@
             clearAllPodHighlights();
             const pod = document.getElementById(`joyPod${index}`);
             if (pod) {
-                pod.className = "joy-pod absolute px-2.5 py-1.5 rounded-md border-2 border-red-500 bg-red-950 text-white text-[10px] sm:text-[11px] font-black tracking-wider orbitron pointer-events-none z-10 whitespace-nowrap shadow-[0_0_20px_rgba(239,68,68,0.9)] scale-110 transition-all duration-75";
+                pod.classList.remove('border-red-900/50', 'bg-[#121316]/90', 'text-gray-300');
+                pod.classList.add('border-2', 'border-red-500', 'bg-red-950', 'text-white', 'shadow-[0_0_20px_rgba(239,68,68,0.9)]', 'scale-110');
             }
         }
 
@@ -710,11 +731,22 @@
                 const angleFromNorth = (deg - 270 + 360) % 360;
                 const sectorIndex = Math.floor(((angleFromNorth + 22.5) % 360) / 45);
 
-                if (activeTargetIndex !== sectorIndex) {
-                    activeTargetIndex = sectorIndex;
-                    highlightPod(sectorIndex);
-                    joyHud.textContent = `[ ARMED // ${JOYSTICK_TRACKS[sectorIndex].fullLabel.toUpperCase()} ]`;
-                    joyHud.className = "orbitron text-xs font-bold text-red-400 tracking-wider truncate";
+                const track = currentJoystickTracks.find(t => t.sector === sectorIndex);
+
+                if (track) {
+                    if (activeTargetIndex !== sectorIndex) {
+                        activeTargetIndex = sectorIndex;
+                        highlightPod(sectorIndex);
+                        joyHud.textContent = `[ ARMED // ${track.fullLabel.toUpperCase()} ]`;
+                        joyHud.className = "orbitron text-xs font-bold text-red-400 tracking-wider truncate";
+                    }
+                } else {
+                    if (activeTargetIndex !== null) {
+                        activeTargetIndex = null;
+                        clearAllPodHighlights();
+                        joyHud.textContent = "[ RADIAL // READY ]";
+                        joyHud.className = "orbitron text-xs font-bold text-red-500/90 tracking-wider truncate";
+                    }
                 }
             } else {
                 if (activeTargetIndex !== null) {
@@ -728,29 +760,28 @@
 
         // --- Unified Robust Audio Player with Synthesizer Fallback ---
         let currentAudio = null;
-        let activeSoundBtn = null;
-        let activeCategoryFilter = "all";
+        let currentPlaybackId = 0;
 
         function stopAllPlayback() {
+            currentPlaybackId++; // Invalidate any running callbacks to prevent HUD glitches
             if (currentAudio) {
-                try { currentAudio.pause(); } catch(e) {}
+                try { 
+                    currentAudio.onended = null;
+                    currentAudio.onerror = null;
+                    currentAudio.pause(); 
+                } catch(e) {}
                 currentAudio = null;
             }
             if ('speechSynthesis' in window) {
                 try { window.speechSynthesis.cancel(); } catch(e) {}
             }
-            if (activeSoundBtn) {
-                activeSoundBtn.querySelector('.indicator').textContent = '▶';
-                activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
-                activeSoundBtn = null;
-            }
-            const bStatus = document.getElementById('boardStatus');
-            if (bStatus) bStatus.textContent = 'READY';
         }
 
         function fallbackSynthesizedVoice(text, onStart, onEnd) {
+            const playbackId = currentPlaybackId;
             if (onStart) onStart(true);
-            playRadioBurst('start');
+            
+            // Note: Radio bursts removed from soundboard logic so it only plays raw clean audio 
 
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -758,9 +789,6 @@
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 utterance.rate = 0.92;
                 utterance.pitch = 0.8;
-                if (soundboardVolSlider) {
-                    utterance.volume = parseFloat(soundboardVolSlider.value);
-                }
 
                 const voices = window.speechSynthesis.getVoices();
                 const imperialVoice = voices.find(v => v.lang && v.lang.startsWith('en') && (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Alex')));
@@ -770,8 +798,7 @@
                 const finishVoice = () => {
                     if (finished) return;
                     finished = true;
-                    playRadioBurst('end');
-                    if (onEnd) onEnd();
+                    if (currentPlaybackId === playbackId && onEnd) onEnd();
                 };
 
                 utterance.onend = finishVoice;
@@ -788,8 +815,7 @@
                 setTimeout(finishVoice, 3000);
             } else {
                 setTimeout(() => {
-                    playRadioBurst('end');
-                    if (onEnd) onEnd();
+                    if (currentPlaybackId === playbackId && onEnd) onEnd();
                 }, 800);
             }
         }
@@ -798,7 +824,10 @@
             initAudio();
             stopAllPlayback();
 
+            const playbackId = currentPlaybackId;
+
             const candidates = [
+                'https://jasongfranks.github.io/stormtrooper-comlink/' + encodeURI(fileName),
                 encodeURI(fileName),
                 fileName,
                 './' + encodeURI(fileName)
@@ -827,8 +856,10 @@
 
                 audio.onended = () => {
                     cleanup();
-                    currentAudio = null;
-                    if (onEnd) onEnd();
+                    if (currentPlaybackId === playbackId) {
+                        currentAudio = null;
+                        if (onEnd) onEnd();
+                    }
                 };
 
                 audio.onerror = () => {
@@ -836,8 +867,10 @@
                     if (!hasStarted) {
                         tryNextCandidate();
                     } else {
-                        currentAudio = null;
-                        if (onEnd) onEnd();
+                        if (currentPlaybackId === playbackId) {
+                            currentAudio = null;
+                            if (onEnd) onEnd();
+                        }
                     }
                 };
 
@@ -860,7 +893,7 @@
         }
 
         function playJoystickVoice(track) {
-            highlightPod(track.index);
+            highlightPod(track.sector);
             joyHud.textContent = `[ TRANSMITTING // ${track.fullLabel.toUpperCase()} ]`;
             joyHud.className = "orbitron text-xs font-bold text-red-500 tracking-wider truncate animate-pulse";
 
@@ -900,9 +933,15 @@
             joystickPuck.style.transform = 'translate(0px, 0px)';
 
             if (activeTargetIndex !== null) {
-                const targetedTrack = JOYSTICK_TRACKS[activeTargetIndex];
+                const targetedTrack = currentJoystickTracks.find(t => t.sector === activeTargetIndex);
                 activeTargetIndex = null;
-                playJoystickVoice(targetedTrack);
+                
+                if (targetedTrack) {
+                    playJoystickVoice(targetedTrack);
+                } else {
+                    clearAllPodHighlights();
+                    joyHud.textContent = "[ RADIAL // READY ]";
+                }
             } else {
                 clearAllPodHighlights();
                 joyHud.textContent = "[ RADIAL // READY ]";
@@ -911,161 +950,6 @@
 
         joystickArena.addEventListener('pointerup', releaseJoystick);
         joystickArena.addEventListener('pointercancel', releaseJoystick);
-
-        // --- Soundboard Engine (Categorized Logs) ---
-        const SOUNDBOARD_CATEGORIES = [
-            {
-                id: "halloween",
-                name: "🎃 HALLOWEEN / GUEST PROTOCOLS",
-                tracks: [
-                    { file: "There's no one here.mp3", label: "1. There's no one here" },
-                    { file: "Let me see your ID.mp3", label: "2. Let me see your ID" },
-                    { file: "We don't need to see ID.mp3", label: "3. We don't need to see ID" },
-                    { file: "Move along, move along.mp3", label: "4. Move along, move along" },
-                    { file: "Look there!.mp3", label: "5. Look there!" },
-                    { file: "Follow me.mp3", label: "6. Follow me" },
-                    { file: "You stand guard.mp3", label: "7. You stand guard" },
-                    { file: "Alright men, load your weapons.mp3", label: "8. Alright men, load your weapons" }
-                ]
-            },
-            {
-                id: "droids",
-                name: "DROID INSPECTION & RECON",
-                tracks: [
-                    { file: "Look sir! Droids.mp3", label: "Look sir! Droids" },
-                    { file: "How long have you had these droids.mp3", label: "How long have you had these droids?" },
-                    { file: "These aren't droids we're looking for.mp3", label: "These aren't the droids we're looking for" }
-                ]
-            },
-            {
-                id: "combat",
-                name: "COMBAT & ENGAGEMENT",
-                tracks: [
-                    { file: "Stop that ship! Blast them.mp3", label: "Stop that ship! Blast them!" },
-                    { file: "There's one. Set for stun.mp3", label: "There's one. Set for stun!" },
-                    { file: "It's them! Blast them.mp3", label: "It's them! Blast them!" }
-                ]
-            },
-            {
-                id: "patrol",
-                name: "PATROL & GUARD CHATTER",
-                tracks: [
-                    { file: "Give me regular reports please.mp3", label: "Give me regular reports please" },
-                    { file: "Maybe its another drill.mp3", label: "Maybe it's another drill" },
-                    { file: "You know whats going on.mp3", label: "You know what's going on" },
-                    { file: "Alright.mp3", label: "Alright" }
-                ]
-            }
-        ];
-
-        if (soundboardVolSlider) {
-            soundboardVolSlider.addEventListener('input', (e) => {
-                valSoundboardVol.textContent = `${Math.round(e.target.value * 100)}%`;
-                if (currentAudio) {
-                    currentAudio.volume = parseFloat(e.target.value);
-                }
-            });
-        }
-
-        function setupFilters() {
-            const filterMap = [
-                { id: 'filterAll', val: 'all', activeClass: 'bg-red-600 text-white border-red-500' },
-                { id: 'filterGuests', val: 'halloween', activeClass: 'bg-orange-600 text-white border-orange-500' },
-                { id: 'filterDroids', val: 'droids', activeClass: 'bg-amber-600 text-white border-amber-500' },
-                { id: 'filterCombat', val: 'combat', activeClass: 'bg-red-600 text-white border-red-500' },
-                { id: 'filterPatrol', val: 'patrol', activeClass: 'bg-blue-600 text-white border-blue-500' }
-            ];
-
-            filterMap.forEach(f => {
-                const btn = document.getElementById(f.id);
-                if (!btn) return;
-                btn.addEventListener('click', () => {
-                    activeCategoryFilter = f.val;
-                    filterMap.forEach(o => {
-                        const otherBtn = document.getElementById(o.id);
-                        if (otherBtn) {
-                            otherBtn.className = "cat-filter-btn py-1.5 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
-                        }
-                    });
-                    btn.className = `cat-filter-btn py-1.5 px-1 rounded-lg ${f.activeClass} shadow-sm transition-all text-center font-bold`;
-                    buildSoundboard();
-                });
-            });
-        }
-
-        function buildSoundboard() {
-            const grid = document.getElementById('soundboardGrid');
-            if (!grid) return;
-            grid.innerHTML = '';
-
-            SOUNDBOARD_CATEGORIES.forEach(category => {
-                if (activeCategoryFilter !== 'all' && activeCategoryFilter !== category.id) {
-                    return;
-                }
-
-                const catWrapper = document.createElement('div');
-                catWrapper.className = "space-y-2";
-
-                if (activeCategoryFilter === 'all') {
-                    const divider = document.createElement('div');
-                    divider.className = "flex items-center gap-2 pt-2 pb-0.5 text-[11px] font-mono font-bold tracking-widest text-red-500/80";
-                    divider.innerHTML = `
-                        <span class="h-px bg-zinc-800 flex-1"></span>
-                        <span>// ${category.name}</span>
-                        <span class="h-px bg-zinc-800 flex-1"></span>
-                    `;
-                    catWrapper.appendChild(divider);
-                }
-
-                category.tracks.forEach((track) => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = "w-full min-h-[58px] text-left p-3 rounded-xl bg-[#14151a] border border-zinc-800 border-l-4 border-l-red-600 transition-all flex items-center justify-between group active:scale-[0.98] cursor-pointer shadow-md";
-                    btn.innerHTML = `
-                        <div class="pr-2 leading-snug">
-                            <span class="text-sm sm:text-base font-black text-white tracking-wide block">${track.label}</span>
-                        </div>
-                        <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-black border border-zinc-700 shrink-0 group-hover:border-zinc-400 transition-colors">
-                            <span class="indicator text-red-500 font-bold text-base group-hover:text-red-400">▶</span>
-                        </div>
-                    `;
-
-                    btn.addEventListener('click', () => playTrack(track, btn));
-                    catWrapper.appendChild(btn);
-                });
-
-                grid.appendChild(catWrapper);
-            });
-        }
-
-        function playTrack(track, buttonElem) {
-            if (activeSoundBtn === buttonElem) {
-                stopAllPlayback();
-                return;
-            }
-
-            stopAllPlayback();
-            activeSoundBtn = buttonElem;
-            buttonElem.querySelector('.indicator').textContent = '■';
-            buttonElem.classList.add('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
-            document.getElementById('boardStatus').textContent = 'PLAYING';
-
-            playCommsClip({
-                fileName: track.file,
-                text: track.label,
-                onStart: (isFallback) => {
-                    document.getElementById('boardStatus').textContent = isFallback ? 'SYNTH PLAYING' : 'PLAYING';
-                },
-                onEnd: () => {
-                    if (activeSoundBtn === buttonElem) {
-                        buttonElem.querySelector('.indicator').textContent = '▶';
-                        buttonElem.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
-                        activeSoundBtn = null;
-                    }
-                    document.getElementById('boardStatus').textContent = 'READY';
-                }
-            });
-        }
 
         // --- Reset Defaults Handler ---
         resetBtn.addEventListener('click', () => {
@@ -1077,19 +961,11 @@
             valLength.textContent = '0.40s';
             burstSlider.value = 0.8;
             valBurst.textContent = '80%';
-            if (soundboardVolSlider) {
-                soundboardVolSlider.value = 0.75;
-                valSoundboardVol.textContent = '75%';
-                if (currentAudio) {
-                    currentAudio.volume = 0.75;
-                }
-            }
         });
 
-        // Initialize soundboard grid and filters upon loading
+        // Initialize joystick pods on load
         window.addEventListener('DOMContentLoaded', () => {
-            setupFilters();
-            buildSoundboard();
+            loadJoystickCategory('halloween');
         });
     </script>
 </body>
