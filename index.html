@@ -118,8 +118,8 @@
             </div>
         </div>
 
-        <!-- Hidden Audio Element for Bluetooth Speaker Routing -->
-        <audio id="liveAudioSink" autoplay playsinline class="hidden"></audio>
+        <!-- Dedicated Audio Pipeline for Bluetooth Speaker Transmissions -->
+        <audio id="transmissionPlayer" playsinline class="hidden"></audio>
 
         <div>
             <!-- Top Status Bar -->
@@ -343,7 +343,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.5.1</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.6.0</span>
             </button>
         </div>
     </div>
@@ -363,27 +363,26 @@
         // Comlink Operation Mode: 'ptt' vs 'vox'
         let comlinkMode = 'ptt';
         let isVoxArmed = false;
-        let isVoxTalking = false;
+        let isVoxRecording = false;
+        let isTransmitting = false;
         let lastSpeechTime = 0;
         let voxAnalyser = null;
         let voxSourceNode = null;
-        let liveFilterDist = null;
-        let liveGateGain = null;
-        let liveStreamDest = null;
         let voxAnimFrame = null;
 
         // Zero-Latency PCM Buffer System & Pre-Roll
         let scriptProcessor = null;
         let recordedBuffers = [];
+        let voxRecordedBuffers = [];
         let preRollBuffers = [];
-        const PRE_ROLL_MAX = 3; // ~250ms rolling buffer
+        const PRE_ROLL_MAX = 4; // ~250ms rolling buffer
 
         // UI Element References
         const authModal = document.getElementById('authModal');
         const activateCommsBtn = document.getElementById('activateCommsBtn');
         const bypassAuthBtn = document.getElementById('bypassAuthBtn');
         const authPromptText = document.getElementById('authPromptText');
-        const liveAudioSink = document.getElementById('liveAudioSink');
+        const transmissionPlayer = document.getElementById('transmissionPlayer');
 
         const tabComlink = document.getElementById('tabComlink');
         const tabJoystick = document.getElementById('tabJoystick');
@@ -448,7 +447,7 @@
             } else {
                 comModeVox.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]";
                 comModePtt.className = "tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
-                comlinkInstructions.textContent = "TAP COG TO ARM VOX • AUTOMATIC SQUELCH ON SPEECH";
+                comlinkInstructions.textContent = "TAP COG TO ARM VOX • HANDS-FREE BT TRANSMIT";
                 transmitBtnTitle.textContent = "VOX STANDBY";
                 transmitBtnSub.textContent = "TAP TO ENGAGE";
                 voxMeterContainer.classList.remove('hidden');
@@ -509,10 +508,18 @@
             }
             if ('audioSession' in navigator) {
                 try {
-                    // 'play-and-record' allows simultaneous mic input and speaker output
                     navigator.audioSession.type = 'play-and-record';
                 } catch(e) {}
             }
+        }
+
+        // --- Prime HTML5 Audio Element for iOS Safari Bluetooth Routing ---
+        function primeAudioPlayer() {
+            if (!transmissionPlayer || transmissionPlayer.dataset.primed === "true") return;
+            transmissionPlayer.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+            transmissionPlayer.play().then(() => {
+                transmissionPlayer.dataset.primed = "true";
+            }).catch(() => {});
         }
 
         // --- Distortion Curve Generator ---
@@ -575,7 +582,6 @@
 
         // --- Robust Microphone Request Pipeline ---
         async function requestMicStream() {
-            // First attempt low-latency unfiltered capture
             try {
                 return await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -587,13 +593,13 @@
             } catch (e1) {
                 console.warn("Low-latency mic constraints rejected, falling back to standard audio:", e1);
             }
-            // Fallback to standard iOS microphone input
             return await navigator.mediaDevices.getUserMedia({ audio: true });
         }
 
         // --- Microphone Authorization & Comms Pipeline ---
         async function setupCommsPipeline() {
             initAudio();
+            primeAudioPlayer();
             try {
                 authPromptText.textContent = "REQUESTING COM LINK PERMISSION...";
                 activateCommsBtn.disabled = true;
@@ -602,19 +608,21 @@
                 mediaStream = await requestMicStream();
                 voxSourceNode = audioContext.createMediaStreamSource(mediaStream);
 
-                // 1. ScriptProcessor for Push-to-Talk Rolling Buffer
+                // 1. ScriptProcessor for Capturing Voice Buffers
                 scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
                 scriptProcessor.onaudioprocess = (e) => {
                     const input = e.inputBuffer.getChannelData(0);
                     const chunk = new Float32Array(input);
 
-                    if (!isRecording) {
+                    if (isRecording) {
+                        recordedBuffers.push(chunk);
+                    } else if (isVoxRecording) {
+                        voxRecordedBuffers.push(chunk);
+                    } else {
                         preRollBuffers.push(chunk);
                         if (preRollBuffers.length > PRE_ROLL_MAX) {
                             preRollBuffers.shift();
                         }
-                    } else {
-                        recordedBuffers.push(chunk);
                     }
                 };
 
@@ -624,38 +632,10 @@
                 scriptProcessor.connect(silence);
                 silence.connect(audioContext.destination);
 
-                // 2. VOX Real-Time Channel Routing & Analyser
+                // 2. VOX Real-Time Speech Energy Analyser
                 voxAnalyser = audioContext.createAnalyser();
                 voxAnalyser.fftSize = 512;
                 voxSourceNode.connect(voxAnalyser);
-
-                const voxHpf = audioContext.createBiquadFilter();
-                voxHpf.type = 'highpass';
-                voxHpf.frequency.value = 500;
-
-                const voxLpf = audioContext.createBiquadFilter();
-                voxLpf.type = 'lowpass';
-                voxLpf.frequency.value = 2600;
-
-                liveFilterDist = audioContext.createWaveShaper();
-                liveFilterDist.curve = makeDistortionCurve(parseFloat(distSlider.value));
-
-                liveGateGain = audioContext.createGain();
-                liveGateGain.gain.setValueAtTime(0, audioContext.currentTime);
-
-                voxSourceNode.connect(voxHpf);
-                voxHpf.connect(voxLpf);
-                voxLpf.connect(liveFilterDist);
-                liveFilterDist.connect(liveGateGain);
-                liveGateGain.connect(audioContext.destination);
-
-                // Bluetooth MediaStream sink
-                liveStreamDest = audioContext.createMediaStreamDestination();
-                liveGateGain.connect(liveStreamDest);
-                if (liveAudioSink) {
-                    liveAudioSink.srcObject = liveStreamDest.stream;
-                    liveAudioSink.play().catch(() => {});
-                }
 
                 isCommsReady = true;
                 authModal.style.display = 'none';
@@ -677,80 +657,14 @@
             bypassAuthBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 initAudio();
+                primeAudioPlayer();
                 authModal.style.display = 'none';
                 switchTab('joystick');
                 updateStatus('MIC OFFLINE', 'bg-yellow-600');
             });
         }
 
-        // --- Web Audio Synthesizer: Radio Static & Burst FX ---
-        function playRadioBurst(type) {
-            if (!audioContext) return 0;
-            const now = audioContext.currentTime;
-            const burstMult = parseFloat(burstSlider.value);
-            const userLength = parseFloat(lengthSlider.value);
-            const isPopHiss = type === 'start' ? false : (Math.random() < 0.5);
-            const duration = isPopHiss ? (userLength + 0.1) : (type === 'start' ? 0.08 : 0.14);
-
-            const bufferSize = Math.max(1, Math.floor(audioContext.sampleRate * duration));
-            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-            const data = buffer.getChannelData(0);
-            
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = (Math.random() * 2 - 1);
-            }
-
-            const noiseSource = audioContext.createBufferSource();
-            noiseSource.buffer = buffer;
-            const gainNode = audioContext.createGain();
-
-            if (isPopHiss) {
-                const hpf = audioContext.createBiquadFilter();
-                hpf.type = 'highpass';
-                hpf.frequency.setValueAtTime(900, now);
-                hpf.Q.setValueAtTime(0.7, now);
-
-                const lpf = audioContext.createBiquadFilter();
-                lpf.type = 'lowpass';
-                lpf.frequency.setValueAtTime(5000, now);
-                lpf.Q.setValueAtTime(0.7, now);
-
-                gainNode.gain.setValueAtTime(0.0001, now);
-                gainNode.gain.linearRampToValueAtTime(0.28 * burstMult, now + 0.004);
-                gainNode.gain.setValueAtTime(0.18 * burstMult, now + 0.015);
-                gainNode.gain.setValueAtTime(0.18 * burstMult, now + duration - 0.015);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-                noiseSource.connect(hpf);
-                hpf.connect(lpf);
-                lpf.connect(gainNode);
-            } else {
-                const bp = audioContext.createBiquadFilter();
-                bp.type = 'bandpass';
-                bp.frequency.setValueAtTime(1800, now);
-                bp.Q.setValueAtTime(4.0, now);
-
-                const dist = audioContext.createWaveShaper();
-                dist.curve = makeDistortionCurve(15);
-
-                gainNode.gain.setValueAtTime(0.0001, now);
-                gainNode.gain.linearRampToValueAtTime(0.42 * burstMult, now + 0.003);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-                noiseSource.connect(bp);
-                bp.connect(dist);
-                dist.connect(gainNode);
-            }
-
-            gainNode.connect(audioContext.destination);
-            if (liveStreamDest) {
-                gainNode.connect(liveStreamDest);
-            }
-            noiseSource.start(now);
-            return duration;
-        }
-
-        // --- Offline Burst Synthesizer for PTT Bluetooth Transmission ---
+        // --- Offline Burst Synthesizer for Radio Clicks & Squelch Tails ---
         function renderBurstIntoOffline(ctx, type, time, burstMult, userLength) {
             const isPopHiss = type === 'start' ? false : (Math.random() < 0.5);
             const duration = isPopHiss ? (userLength + 0.1) : (type === 'start' ? 0.08 : 0.14);
@@ -805,9 +719,15 @@
             noiseSource.start(time);
         }
 
-        // --- VOX Engine: Loop & Speech Detection ---
+        // --- Hands-Free Sentence VOX Detection Loop ---
         function runVoxLoop() {
             if (!isVoxArmed || !voxAnalyser) return;
+
+            // While Bluetooth speaker is speaking, pause listening to eliminate acoustic feedback
+            if (isTransmitting) {
+                voxAnimFrame = requestAnimationFrame(runVoxLoop);
+                return;
+            }
 
             const buffer = new Uint8Array(voxAnalyser.fftSize);
             voxAnalyser.getByteTimeDomainData(buffer);
@@ -826,32 +746,28 @@
             // Update HUD Speech Energy Meter
             const meterPct = Math.min(100, Math.round((maxDeviation / 64) * 100));
             voxMeterBar.style.width = `${meterPct}%`;
-            voxMeterBar.className = maxDeviation > threshold ? 'h-full bg-red-500 transition-all duration-75 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'h-full bg-gray-600 transition-all duration-75';
+            voxMeterBar.className = maxDeviation > threshold 
+                ? 'h-full bg-red-500 transition-all duration-75 shadow-[0_0_8px_rgba(239,68,68,0.8)]' 
+                : 'h-full bg-gray-600 transition-all duration-75';
 
             if (maxDeviation > threshold) {
                 lastSpeechTime = now;
-                if (!isVoxTalking) {
-                    isVoxTalking = true;
-                    playRadioBurst('start');
-                    if (liveGateGain) {
-                        liveGateGain.gain.cancelScheduledValues(audioContext.currentTime);
-                        liveGateGain.gain.setValueAtTime(liveGateGain.gain.value, audioContext.currentTime);
-                        liveGateGain.gain.linearRampToValueAtTime(2.2, audioContext.currentTime + 0.04);
-                    }
-                    updateStatus('VOX TRANSMITTING', 'bg-red-600 animate-pulse');
-                    transmitBtnTitle.textContent = "TRANSMITTING";
+                if (!isVoxRecording) {
+                    isVoxRecording = true;
+                    // Prepend pre-roll buffer so starting consonants are never cut off
+                    voxRecordedBuffers = [...preRollBuffers];
+                    updateStatus('VOX RECORDING...', 'bg-red-600 animate-pulse');
+                    transmitBtnTitle.textContent = "RECORDING";
+                    transmitBtn.classList.add('scale-95');
                 }
             } else {
-                if (isVoxTalking && (now - lastSpeechTime > holdTimeMs)) {
-                    isVoxTalking = false;
-                    if (liveGateGain) {
-                        liveGateGain.gain.cancelScheduledValues(audioContext.currentTime);
-                        liveGateGain.gain.setValueAtTime(liveGateGain.gain.value, audioContext.currentTime);
-                        liveGateGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.04);
-                    }
-                    playRadioBurst('end');
-                    updateStatus('VOX LISTENING', 'bg-emerald-500');
-                    transmitBtnTitle.textContent = "VOX ARMED";
+                // If user finished their sentence and paused beyond threshold, transmit immediately
+                if (isVoxRecording && (now - lastSpeechTime > holdTimeMs)) {
+                    isVoxRecording = false;
+                    transmitBtn.classList.remove('scale-95');
+                    const captured = [...voxRecordedBuffers];
+                    voxRecordedBuffers = [];
+                    processAndTransmitVox(captured);
                 }
             }
 
@@ -861,8 +777,10 @@
         function armVox() {
             if (!isCommsReady) return;
             initAudio();
+            primeAudioPlayer();
             isVoxArmed = true;
-            isVoxTalking = false;
+            isVoxRecording = false;
+            isTransmitting = false;
             lastSpeechTime = 0;
             transmitBtnTitle.textContent = "VOX ARMED";
             transmitBtnSub.textContent = "TAP TO DISARM";
@@ -872,15 +790,10 @@
 
         function disarmVox() {
             isVoxArmed = false;
+            isVoxRecording = false;
+            isTransmitting = false;
+            voxRecordedBuffers = [];
             if (voxAnimFrame) cancelAnimationFrame(voxAnimFrame);
-            if (liveGateGain && audioContext) {
-                liveGateGain.gain.cancelScheduledValues(audioContext.currentTime);
-                liveGateGain.gain.setValueAtTime(0, audioContext.currentTime);
-            }
-            if (isVoxTalking) {
-                isVoxTalking = false;
-                playRadioBurst('end');
-            }
             voxMeterBar.style.width = '0%';
             if (comlinkMode === 'vox') {
                 transmitBtnTitle.textContent = "VOX STANDBY";
@@ -889,10 +802,49 @@
             }
         }
 
+        // --- Process Voice & Transmit to Bluetooth Speaker ---
+        function processAndTransmitVox(buffers) {
+            if (!buffers || buffers.length === 0) {
+                updateStatus('VOX LISTENING', 'bg-emerald-500');
+                transmitBtnTitle.textContent = "VOX ARMED";
+                return;
+            }
+
+            let totalSamples = 0;
+            for (let b of buffers) totalSamples += b.length;
+
+            // Discard negligible noise bumps (< 0.2s)
+            if (totalSamples < audioContext.sampleRate * 0.2) {
+                updateStatus('VOX LISTENING', 'bg-emerald-500');
+                transmitBtnTitle.textContent = "VOX ARMED";
+                return;
+            }
+
+            const audioBuffer = audioContext.createBuffer(1, totalSamples, audioContext.sampleRate);
+            const channelData = audioBuffer.getChannelData(0);
+            let offset = 0;
+            for (let b of buffers) {
+                channelData.set(b, offset);
+                offset += b.length;
+            }
+
+            transmitBtnTitle.textContent = "TRANSMITTING";
+            playTransmittedAudio(audioBuffer, () => {
+                if (isVoxArmed) {
+                    updateStatus('VOX LISTENING', 'bg-emerald-500');
+                    transmitBtnTitle.textContent = "VOX ARMED";
+                } else {
+                    updateStatus('VOX READY', 'bg-blue-500');
+                    transmitBtnTitle.textContent = "VOX STANDBY";
+                }
+            });
+        }
+
         // --- Voice Recording & Modulation (Push-To-Talk) ---
         function startRecording() {
             if (!isCommsReady || isRecording) return;
             initAudio();
+            primeAudioPlayer();
 
             recordedBuffers = [...preRollBuffers];
             isRecording = true;
@@ -935,12 +887,16 @@
                 offset += b.length;
             }
 
-            playTransmittedAudio(audioBuffer);
+            playTransmittedAudio(audioBuffer, () => {
+                updateStatus('STANDBY', 'bg-emerald-500');
+                transmitBtn.disabled = false;
+            });
         }
 
         // --- Render Audio & Play Via HTML5 Audio (Direct to Bluetooth Speaker) ---
-        async function playTransmittedAudio(audioBuffer) {
+        async function playTransmittedAudio(audioBuffer, onDone) {
             try {
+                isTransmitting = true;
                 updateStatus('TRANSMITTING...', 'bg-green-600');
                 const pitch = parseFloat(pitchSlider.value);
                 const distAmt = parseFloat(distSlider.value);
@@ -984,7 +940,7 @@
                 compressor.release.value = 0.05;
 
                 const makeUpGain = offlineCtx.createGain();
-                makeUpGain.gain.value = 2.0;
+                makeUpGain.gain.value = 2.2;
 
                 source.connect(highpass);
                 highpass.connect(lowpass);
@@ -1001,52 +957,43 @@
 
                 // Render into WAV buffer
                 const renderedBuffer = await offlineCtx.startRendering();
+                const wavBlob = audioBufferToWavBlob(renderedBuffer);
+                const blobUrl = URL.createObjectURL(wavBlob);
 
-                // Failsafe Dual-Playback Engine:
-                // 1. Try HTML5 Audio (Routes directly to external Bluetooth speakers)
-                let playedViaHtml5 = false;
-                try {
-                    const wavBlob = audioBufferToWavBlob(renderedBuffer);
-                    const blobUrl = URL.createObjectURL(wavBlob);
-                    const pttPlayer = new Audio(blobUrl);
-                    currentAudio = pttPlayer;
+                const finishTransmission = () => {
+                    URL.revokeObjectURL(blobUrl);
+                    currentAudio = null;
+                    isTransmitting = false;
+                    preRollBuffers = []; // Clear pre-roll to prevent acoustic bleed
+                    if (onDone) onDone();
+                };
 
-                    pttPlayer.onended = () => {
-                        URL.revokeObjectURL(blobUrl);
-                        currentAudio = null;
-                        updateStatus('STANDBY', 'bg-emerald-500');
-                        transmitBtn.disabled = false;
-                    };
-
-                    await pttPlayer.play();
-                    playedViaHtml5 = true;
-                } catch (playErr) {
-                    console.warn("HTML5 audio playback bypassed by Safari, switching to WebAudio:", playErr);
-                }
-
-                // 2. Direct Web Audio Context Fallback (Guaranteed to play without Safari gesture blocks)
-                if (!playedViaHtml5) {
-                    const bufferSource = audioContext.createBufferSource();
-                    bufferSource.buffer = renderedBuffer;
-                    bufferSource.connect(audioContext.destination);
-
-                    bufferSource.onended = () => {
-                        updateStatus('STANDBY', 'bg-emerald-500');
-                        transmitBtn.disabled = false;
-                    };
-
-                    bufferSource.start(0);
+                // Play directly through primed HTML5 player for Bluetooth A2DP routing
+                if (transmissionPlayer) {
+                    transmissionPlayer.onended = finishTransmission;
+                    transmissionPlayer.onerror = finishTransmission;
+                    transmissionPlayer.src = blobUrl;
+                    currentAudio = transmissionPlayer;
+                    await transmissionPlayer.play();
+                } else {
+                    const fallbackAudio = new Audio(blobUrl);
+                    fallbackAudio.onended = finishTransmission;
+                    fallbackAudio.onerror = finishTransmission;
+                    currentAudio = fallbackAudio;
+                    await fallbackAudio.play();
                 }
             } catch (err) {
                 console.error("Playback error:", err);
-                updateStatus('STANDBY', 'bg-emerald-500');
-                transmitBtn.disabled = false;
+                currentAudio = null;
+                isTransmitting = false;
+                if (onDone) onDone();
             }
         }
 
         // --- Transmit Button Touch Listeners (Mode Aware) ---
         transmitBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            primeAudioPlayer();
             if (comlinkMode === 'ptt') {
                 startRecording();
             } else {
@@ -1070,9 +1017,6 @@
         // --- Slider UI Feedback ---
         distSlider.addEventListener('input', (e) => {
             valDist.textContent = e.target.value;
-            if (liveFilterDist) {
-                liveFilterDist.curve = makeDistortionCurve(parseFloat(e.target.value));
-            }
         });
         pitchSlider.addEventListener('input', (e) => {
             valPitch.textContent = parseFloat(e.target.value).toFixed(2);
@@ -1482,9 +1426,8 @@
             valBurst.textContent = '80%';
             voxSensSlider.value = 25;
             valVoxSens.textContent = '25';
-            voxHoldSlider.value = 0.5;
-            valVoxHold.textContent = '0.50s';
-            if (liveFilterDist) liveFilterDist.curve = makeDistortionCurve(10);
+            voxHoldSlider.value = 0.45;
+            valVoxHold.textContent = '0.45s';
         });
 
         // Initialize joystick pods on load
