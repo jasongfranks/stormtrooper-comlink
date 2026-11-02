@@ -272,7 +272,7 @@
         <!-- Centered Version Tracker & Imperial ID Footer -->
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <span class="text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                SYS VER // <span class="text-red-400 font-bold">v2.3.0</span>
+                SYS VER // <span class="text-red-400 font-bold">v2.3.2</span>
             </span>
         </div>
     </div>
@@ -837,6 +837,9 @@
             let candidateIndex = 0;
 
             function tryNextCandidate() {
+                // Prevent async race conditions if superseded by a new joystick flick
+                if (currentPlaybackId !== playbackId) return; 
+
                 if (candidateIndex >= candidates.length) {
                     fallbackSynthesizedVoice(text, onStart, onEnd);
                     return;
@@ -844,9 +847,6 @@
 
                 const src = candidates[candidateIndex++];
                 const audio = new Audio();
-                if (soundboardVolSlider) {
-                    audio.volume = parseFloat(soundboardVolSlider.value);
-                }
 
                 let hasStarted = false;
 
@@ -865,13 +865,13 @@
 
                 audio.onerror = () => {
                     cleanup();
+                    if (currentPlaybackId !== playbackId) return; // Abort if cancelled
+                    
                     if (!hasStarted) {
                         tryNextCandidate();
                     } else {
-                        if (currentPlaybackId === playbackId) {
-                            currentAudio = null;
-                            if (onEnd) onEnd();
-                        }
+                        currentAudio = null;
+                        if (onEnd) onEnd();
                     }
                 };
 
@@ -880,11 +880,16 @@
 
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
+                        if (currentPlaybackId !== playbackId) {
+                            audio.pause();
+                            return;
+                        }
                         hasStarted = true;
                         currentAudio = audio;
                         if (onStart) onStart(false);
                     }).catch(() => {
                         cleanup();
+                        if (currentPlaybackId !== playbackId) return; // Abort if cancelled
                         tryNextCandidate();
                     });
                 }
