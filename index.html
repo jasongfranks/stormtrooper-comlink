@@ -76,6 +76,20 @@
 
     <!-- Main Container Frame -->
     <div class="w-full max-w-lg bg-[#121316] border border-red-900/40 rounded-2xl p-4 sm:p-6 shadow-[0_0_40px_rgba(220,38,38,0.15)] relative overflow-hidden backdrop-blur-md text-center">
+        <!-- Mic Authorization Overlay Modal -->
+        <div id="authModal" class="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-16 h-16 rounded-full border-2 border-red-500/80 bg-red-950/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+                <span class="text-2xl text-red-500">🔒</span>
+            </div>
+            <h2 class="orbitron font-bold text-lg text-red-500 uppercase tracking-widest mb-2">Comlink Standby</h2>
+            <p id="authPromptText" class="text-xs text-gray-300 font-mono mb-6 max-w-xs leading-relaxed">
+                Imperial comms protocol requires secure microphone authorization to operate helmet transmitter.
+            </p>
+            <button id="activateCommsBtn" type="button" class="tab-btn w-full py-4 px-6 bg-red-600 hover:bg-red-500 text-white font-bold orbitron text-xs sm:text-sm tracking-widest rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.7)] active:scale-95 transition-all">
+                INITIALIZE COMMS UNIT
+            </button>
+        </div>
+
         <!-- Top Status Bar -->
         <div class="flex items-center justify-between border-b border-red-900/30 pb-3 mb-4 text-[11px] font-mono tracking-widest text-red-500/80">
             <span>UNIT // TK-714</span>
@@ -182,7 +196,7 @@
                 <!-- Centered Version Tracker -->
                 <div class="mt-3 text-center">
                     <span class="text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                        SYS VER // <span class="text-red-400 font-bold">v1.2.6</span>
+                        SYS VER // <span class="text-red-400 font-bold">v1.3.1</span>
                     </span>
                 </div>
             </div>
@@ -190,13 +204,13 @@
 
         <!-- ================= MODE 2: SOUNDBOARD ================= -->
         <section id="viewSoundboard" style="display: none;" class="text-left">
-            <div class="flex items-center justify-between mb-4 border-b border-red-900/30 pb-3">
+            <div class="flex items-center justify-between mb-3 border-b border-red-900/30 pb-2">
                 <span class="orbitron text-xs text-red-400 font-bold uppercase tracking-wider">Tactical Comms Logs (18 Clips)</span>
                 <span id="boardStatus" class="text-[11px] text-gray-400 font-mono">READY</span>
             </div>
 
             <!-- Soundboard Master Volume -->
-            <div class="mb-4 bg-black/40 p-3 rounded-xl border border-red-900/30 text-left">
+            <div class="mb-3 bg-black/40 p-3 rounded-xl border border-red-900/30 text-left">
                 <div class="flex justify-between text-xs text-gray-400 mb-1.5" title="Controls output playback volume for soundboard voice clips.">
                     <span class="cursor-help flex items-center gap-1 font-mono">Soundboard Master Vol <span class="text-[10px] text-red-500/70">ⓘ</span></span>
                     <span id="valSoundboardVol" class="font-mono text-red-400">75%</span>
@@ -204,9 +218,17 @@
                 <input type="range" id="soundboardVolSlider" min="0" max="1" step="0.05" value="0.75" class="styled-slider">
             </div>
 
-            <!-- 18-Track Dynamic Audio Grid -->
-            <div id="soundboardGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto pr-1">
-                <!-- Dynamically generated buttons -->
+            <!-- Category Filter Chips for Quick Glove Tapping -->
+            <div class="grid grid-cols-4 gap-1.5 mb-4 text-[11px] font-bold orbitron">
+                <button id="filterAll" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-red-600 text-white border border-red-500 shadow-sm transition-all text-center">ALL</button>
+                <button id="filterDroids" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-amber-400 border border-amber-900/50 hover:border-amber-500 transition-all text-center">DROIDS</button>
+                <button id="filterCombat" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-red-400 border border-red-900/50 hover:border-red-500 transition-all text-center">COMBAT</button>
+                <button id="filterPatrol" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-blue-400 border border-blue-900/50 hover:border-blue-500 transition-all text-center">PATROL</button>
+            </div>
+
+            <!-- Glove-Friendly Dynamic Grouped Audio Grid -->
+            <div id="soundboardGrid" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1 pb-4">
+                <!-- Dynamically generated categorized buttons -->
             </div>
         </section>
     </div>
@@ -215,11 +237,20 @@
         // --- Core Audio State ---
         let audioContext = null;
         let mediaStream = null;
-        let mediaRecorder = null;
-        let audioChunks = [];
         let isRecording = false;
+        let isCommsReady = false;
+
+        // Zero-Latency PCM Buffer System & Pre-Roll
+        let scriptProcessor = null;
+        let recordedBuffers = [];
+        let preRollBuffers = [];
+        const PRE_ROLL_MAX = 3; // ~250ms rolling buffer to prevent clipped initial words
 
         // UI Element References
+        const authModal = document.getElementById('authModal');
+        const activateCommsBtn = document.getElementById('activateCommsBtn');
+        const authPromptText = document.getElementById('authPromptText');
+
         const tabComlink = document.getElementById('tabComlink');
         const tabSoundboard = document.getElementById('tabSoundboard');
         const viewComlink = document.getElementById('viewComlink');
@@ -289,6 +320,59 @@
                 audioContext.resume();
             }
         }
+
+        // --- Microphone Authorization & Zero-Latency Audio Pipeline ---
+        async function setupCommsPipeline() {
+            initAudio();
+            try {
+                authPromptText.textContent = "REQUESTING COMM LINK PERMISSION...";
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                // Attach continuous PCM listener with rolling pre-roll buffer
+                const sourceNode = audioContext.createMediaStreamSource(mediaStream);
+                scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+
+                scriptProcessor.onaudioprocess = (e) => {
+                    const input = e.inputBuffer.getChannelData(0);
+                    const chunk = new Float32Array(input);
+
+                    if (!isRecording) {
+                        preRollBuffers.push(chunk);
+                        if (preRollBuffers.length > PRE_ROLL_MAX) {
+                            preRollBuffers.shift();
+                        }
+                    } else {
+                        recordedBuffers.push(chunk);
+                    }
+                };
+
+                // Keep processor node alive through a silent gain node
+                const silence = audioContext.createGain();
+                silence.gain.value = 0;
+                sourceNode.connect(scriptProcessor);
+                scriptProcessor.connect(silence);
+                silence.connect(audioContext.destination);
+
+                isCommsReady = true;
+                authModal.style.display = 'none';
+                updateStatus('STANDBY', 'bg-emerald-500');
+            } catch (err) {
+                console.error("Mic authorization error:", err);
+                authPromptText.textContent = "ACCESS BLOCKED: PLEASE ENABLE MICROPHONE PERMISSION IN SAFARI SITE SETTINGS.";
+                activateCommsBtn.textContent = "RETRY AUTHORIZATION";
+            }
+        }
+
+        activateCommsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            setupCommsPipeline();
+        });
 
         // --- Distortion Curve Generator ---
         function makeDistortionCurve(amount) {
@@ -373,70 +457,64 @@
         }
 
         // --- Voice Recording & In-Helmet Modulation Processing ---
-        async function startRecording() {
-            if (isRecording) return;
+        function startRecording() {
+            if (!isCommsReady || isRecording) return;
             initAudio();
 
-            try {
-                if (!mediaStream) {
-                    mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: { 
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            autoGainControl: true
-                        } 
-                    });
-                }
+            // Pre-seed buffer with the rolling 250ms pre-roll so the start of your sentence is never cut off
+            recordedBuffers = [...preRollBuffers];
+            isRecording = true;
 
-                audioChunks = [];
-                mediaRecorder = new MediaRecorder(mediaStream);
-
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        audioChunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = async () => {
-                    if (audioChunks.length === 0) {
-                        updateStatus('IDLE', 'bg-gray-500');
-                        transmitBtn.disabled = false;
-                        return;
-                    }
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    await processAndPlay(audioBlob);
-                };
-
-                playRadioBurst('start');
-                mediaRecorder.start(50);
-                isRecording = true;
-                updateStatus('RECORDING...', 'bg-red-600 animate-pulse');
-                transmitBtn.classList.add('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
-            } catch (err) {
-                console.error("Mic access error:", err);
-                updateStatus('MIC PERMISSION REQ', 'bg-red-500');
-                isRecording = false;
-            }
+            // NO burst sound on button press - record in total silence
+            updateStatus('RECORDING...', 'bg-red-600 animate-pulse');
+            transmitBtn.classList.add('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
         }
 
         function stopRecording() {
             if (!isRecording) return;
             isRecording = false;
             transmitBtn.classList.remove('bg-red-700', 'scale-95', 'shadow-[0_0_25px_rgba(220,38,38,0.9)]');
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-                updateStatus('PROCESSING...', 'bg-yellow-500');
-                transmitBtn.disabled = true;
-            }
+            updateStatus('PROCESSING...', 'bg-yellow-500');
+            transmitBtn.disabled = true;
+
+            processAndPlayPCM(recordedBuffers);
         }
 
-        async function processAndPlay(blob) {
-            try {
-                const arrayBuffer = await blob.arrayBuffer();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        function processAndPlayPCM(buffers) {
+            if (!buffers || buffers.length === 0) {
+                updateStatus('STANDBY', 'bg-emerald-500');
+                transmitBtn.disabled = false;
+                return;
+            }
 
+            // Total sample count
+            let totalSamples = 0;
+            for (let b of buffers) totalSamples += b.length;
+
+            // Ignore brief accidental taps (under 0.2s)
+            if (totalSamples < audioContext.sampleRate * 0.2) {
+                updateStatus('STANDBY', 'bg-emerald-500');
+                transmitBtn.disabled = false;
+                return;
+            }
+
+            // Assemble into raw AudioBuffer with 0ms decode latency
+            const audioBuffer = audioContext.createBuffer(1, totalSamples, audioContext.sampleRate);
+            const channelData = audioBuffer.getChannelData(0);
+            let offset = 0;
+            for (let b of buffers) {
+                channelData.set(b, offset);
+                offset += b.length;
+            }
+
+            playTransmittedAudio(audioBuffer);
+        }
+
+        function playTransmittedAudio(audioBuffer) {
+            try {
                 updateStatus('TRANSMITTING...', 'bg-green-600');
-                
+
+                // Radio burst plays after releasing the button as transmission commences
                 const burstDelay = playRadioBurst('start');
                 const startTime = audioContext.currentTime + (burstDelay * 0.7);
 
@@ -479,7 +557,7 @@
                 source.start(startTime);
                 source.onended = () => {
                     playRadioBurst('end');
-                    updateStatus('IDLE', 'bg-gray-500');
+                    updateStatus('STANDBY', 'bg-emerald-500');
                     transmitBtn.disabled = false;
                 };
             } catch (err) {
@@ -521,30 +599,55 @@
             valComlinkVol.textContent = `${Math.round(e.target.value * 100)}%`;
         });
 
-        // --- Soundboard Engine ---
-        const SOUNDBOARD_TRACKS = [
-            "Alright men, load your weapons.mp3",
-            "Alright.mp3",
-            "Follow me.mp3",
-            "Give me regular reports please.mp3",
-            "How long have you had these droids.mp3",
-            "It's them! Blast them.mp3",
-            "Let me see your ID.mp3",
-            "Look sir! Droids.mp3",
-            "Look there!.mp3",
-            "Maybe its another drill.mp3",
-            "Move along, move along.mp3",
-            "Stop that ship! Blast them.mp3",
-            "There's no one here.mp3",
-            "There's one. Set for stun.mp3",
-            "These aren't droids we're looking for.mp3",
-            "We don't need to see ID.mp3",
-            "You know whats going on.mp3",
-            "You stand guard.mp3"
+        // --- Soundboard Engine (Categorized & Armor/Glove Optimized) ---
+        const SOUNDBOARD_CATEGORIES = [
+            {
+                id: "droids",
+                name: "DROID INSPECTION & ID",
+                badgeClass: "bg-amber-950/50 border-amber-800/60 text-amber-400",
+                buttonHover: "hover:border-amber-500 active:bg-amber-950/40",
+                tracks: [
+                    { file: "Look sir! Droids.mp3", label: "Look sir! Droids" },
+                    { file: "How long have you had these droids.mp3", label: "How long have you had these droids?" },
+                    { file: "Let me see your ID.mp3", label: "Let me see your ID" },
+                    { file: "We don't need to see ID.mp3", label: "We don't need to see ID" },
+                    { file: "These aren't droids we're looking for.mp3", label: "These aren't the droids we're looking for" },
+                    { file: "Move along, move along.mp3", label: "Move along, move along" }
+                ]
+            },
+            {
+                id: "combat",
+                name: "COMBAT & ENGAGEMENT",
+                badgeClass: "bg-red-950/50 border-red-800/60 text-red-400",
+                buttonHover: "hover:border-red-500 active:bg-red-950/40",
+                tracks: [
+                    { file: "Stop that ship! Blast them.mp3", label: "Stop that ship! Blast them!" },
+                    { file: "There's one. Set for stun.mp3", label: "There's one. Set for stun!" },
+                    { file: "It's them! Blast them.mp3", label: "It's them! Blast them!" },
+                    { file: "Alright men, load your weapons.mp3", label: "Alright men, load your weapons" },
+                    { file: "Look there!.mp3", label: "Look there!" }
+                ]
+            },
+            {
+                id: "patrol",
+                name: "PATROL & GUARD ORDERS",
+                badgeClass: "bg-blue-950/50 border-blue-800/60 text-blue-400",
+                buttonHover: "hover:border-blue-500 active:bg-blue-950/40",
+                tracks: [
+                    { file: "Give me regular reports please.mp3", label: "Give me regular reports please" },
+                    { file: "Maybe its another drill.mp3", label: "Maybe it's another drill" },
+                    { file: "There's no one here.mp3", label: "There's no one here" },
+                    { file: "You stand guard.mp3", label: "You stand guard" },
+                    { file: "Follow me.mp3", label: "Follow me" },
+                    { file: "You know whats going on.mp3", label: "You know what's going on" },
+                    { file: "Alright.mp3", label: "Alright" }
+                ]
+            }
         ];
 
         let currentAudio = null;
         let activeSoundBtn = null;
+        let activeCategoryFilter = "all";
 
         if (soundboardVolSlider) {
             soundboardVolSlider.addEventListener('input', (e) => {
@@ -555,23 +658,77 @@
             });
         }
 
+        // Setup filter button events
+        function setupFilters() {
+            const filterMap = [
+                { id: 'filterAll', val: 'all', activeClass: 'bg-red-600 text-white border-red-500' },
+                { id: 'filterDroids', val: 'droids', activeClass: 'bg-amber-600 text-white border-amber-500' },
+                { id: 'filterCombat', val: 'combat', activeClass: 'bg-red-600 text-white border-red-500' },
+                { id: 'filterPatrol', val: 'patrol', activeClass: 'bg-blue-600 text-white border-blue-500' }
+            ];
+
+            filterMap.forEach(f => {
+                const btn = document.getElementById(f.id);
+                if (!btn) return;
+                btn.addEventListener('click', () => {
+                    activeCategoryFilter = f.val;
+                    // Reset all
+                    filterMap.forEach(o => {
+                        const otherBtn = document.getElementById(o.id);
+                        if (otherBtn) {
+                            otherBtn.className = "cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-gray-400 border border-gray-800 transition-all text-center";
+                        }
+                    });
+                    btn.className = `cat-filter-btn py-2 px-1 rounded-lg ${f.activeClass} shadow-sm transition-all text-center font-bold`;
+                    buildSoundboard();
+                });
+            });
+        }
+
         function buildSoundboard() {
             const grid = document.getElementById('soundboardGrid');
             if (!grid) return;
             grid.innerHTML = '';
 
-            SOUNDBOARD_TRACKS.forEach((trackName, idx) => {
-                const label = trackName.replace('.mp3', '');
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = "w-full text-left p-3 rounded-lg bg-black/40 border border-red-900/30 hover:border-red-600 transition-all text-xs font-mono text-gray-200 flex items-center justify-between group active:scale-[0.98] cursor-pointer";
-                btn.innerHTML = `
-                    <span class="truncate pr-2">${idx + 1}. ${label}</span>
-                    <span class="indicator text-red-500 font-bold group-hover:text-red-400">▶</span>
-                `;
+            SOUNDBOARD_CATEGORIES.forEach(category => {
+                if (activeCategoryFilter !== 'all' && activeCategoryFilter !== category.id) {
+                    return;
+                }
 
-                btn.addEventListener('click', () => playTrack(trackName, btn));
-                grid.appendChild(btn);
+                const catWrapper = document.createElement('div');
+                catWrapper.className = "space-y-2";
+
+                // Section Banner
+                const header = document.createElement('div');
+                header.className = `px-3 py-1.5 rounded-lg border text-[11px] font-mono tracking-widest font-bold flex items-center justify-between ${category.badgeClass}`;
+                header.innerHTML = `
+                    <span>// ${category.name}</span>
+                    <span>${category.tracks.length} CLIPS</span>
+                `;
+                catWrapper.appendChild(header);
+
+                // Big Glove-Sized Buttons Container
+                const btnList = document.createElement('div');
+                btnList.className = "grid grid-cols-1 gap-2.5";
+
+                category.tracks.forEach((track) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    // High-contrast, large touch targets (~64px height min)
+                    btn.className = `w-full min-h-[64px] text-left p-4 rounded-xl bg-[#18191d] border-2 border-red-950/70 ${category.buttonHover} transition-all flex items-center justify-between group active:scale-[0.98] cursor-pointer shadow-md`;
+                    btn.innerHTML = `
+                        <span class="text-sm sm:text-base font-bold text-white tracking-wide pr-3 leading-snug">${track.label}</span>
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-black/60 border border-red-900/40 shrink-0">
+                            <span class="indicator text-red-500 font-bold text-lg group-hover:text-red-400">▶</span>
+                        </div>
+                    `;
+
+                    btn.addEventListener('click', () => playTrack(track.file, btn));
+                    btnList.appendChild(btn);
+                });
+
+                catWrapper.appendChild(btnList);
+                grid.appendChild(catWrapper);
             });
         }
 
@@ -583,7 +740,7 @@
                 currentAudio = null;
                 if (activeSoundBtn) {
                     activeSoundBtn.querySelector('.indicator').textContent = '▶';
-                    activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/40');
+                    activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/60');
                 }
             }
 
@@ -604,12 +761,12 @@
                 currentAudio = audio;
                 activeSoundBtn = buttonElem;
                 buttonElem.querySelector('.indicator').textContent = '■';
-                buttonElem.classList.add('border-red-500', 'bg-red-950/40');
+                buttonElem.classList.add('border-red-500', 'bg-red-950/60');
                 document.getElementById('boardStatus').textContent = 'PLAYING';
 
                 audio.onended = () => {
                     buttonElem.querySelector('.indicator').textContent = '▶';
-                    buttonElem.classList.remove('border-red-500', 'bg-red-950/40');
+                    buttonElem.classList.remove('border-red-500', 'bg-red-950/60');
                     currentAudio = null;
                     activeSoundBtn = null;
                     document.getElementById('boardStatus').textContent = 'READY';
@@ -644,8 +801,9 @@
             }
         });
 
-        // Initialize soundboard grid upon loading
+        // Initialize soundboard grid and filters upon loading
         window.addEventListener('DOMContentLoaded', () => {
+            setupFilters();
             buildSoundboard();
         });
     </script>
