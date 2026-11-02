@@ -54,6 +54,13 @@
             cursor: pointer;
         }
 
+        /* Smooth iOS Touch Scrolling */
+        .touch-scroll {
+            touch-action: pan-y !important;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+        }
+
         /* Custom Range Sliders */
         .styled-slider {
             -webkit-appearance: none;
@@ -106,6 +113,9 @@
             </button>
         </div>
 
+        <!-- Hidden Audio Element for Bluetooth Speaker Routing -->
+        <audio id="liveAudioSink" autoplay playsinline class="hidden"></audio>
+
         <div>
             <!-- Top Status Bar -->
             <div class="flex items-center justify-between border-b border-red-900/30 pb-2 mb-2 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/80">
@@ -128,7 +138,7 @@
         </div>
 
         <!-- ================= MODE 1: COMLINK ================= -->
-        <section id="viewComlink" style="display: none;" class="flex-1 flex-col overflow-y-auto pr-1">
+        <section id="viewComlink" style="display: none;" class="flex-1 min-h-0 flex-col overflow-y-auto touch-scroll pr-1 pb-4">
             <!-- PTT vs VOX Mode Switcher -->
             <div class="grid grid-cols-2 gap-1 mb-2 p-1 bg-black/60 rounded-xl border border-red-900/40 shrink-0">
                 <button id="comModePtt" type="button" class="tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]">
@@ -212,7 +222,7 @@
             </div>
 
             <!-- Status Display & VOX Level Bar -->
-            <div id="statusDisplay" class="mb-3 flex flex-col items-center justify-center shrink-0 space-y-1.5">
+            <div id="statusDisplay" class="my-3 flex flex-col items-center justify-center shrink-0 space-y-1.5">
                 <div class="flex items-center space-x-2 bg-black/40 px-4 py-1 rounded-full border border-red-900/40">
                     <span id="statusLight" class="w-2.5 h-2.5 rounded-full bg-gray-500 transition-colors duration-300"></span>
                     <span id="statusText" class="orbitron text-xs tracking-wider text-gray-300 uppercase">STANDBY</span>
@@ -224,8 +234,8 @@
             </div>
 
             <!-- Glove-Friendly Transmit Button (Massive Imperial Cog) -->
-            <div class="flex-1 flex items-center justify-center min-h-[200px]">
-                <button id="transmitBtn" type="button" class="group relative tab-btn w-full max-w-[280px] sm:max-w-[320px] aspect-square mx-auto flex flex-col items-center justify-center rounded-full active:scale-95 transition-all duration-150 outline-none select-none">
+            <div class="py-2 flex flex-col items-center justify-center shrink-0 my-auto">
+                <button id="transmitBtn" type="button" class="group relative tab-btn w-60 sm:w-72 aspect-square mx-auto flex flex-col items-center justify-center rounded-full active:scale-95 transition-all duration-150 outline-none select-none">
                     
                     <!-- Official Imperial Crest Image Mask -->
                     <div class="absolute inset-0 w-full h-full text-red-600/80 group-hover:text-red-500 group-active:text-red-500 drop-shadow-[0_0_20px_rgba(220,38,38,0.4)] group-active:drop-shadow-[0_0_35px_rgba(220,38,38,0.9)] transition-all duration-150 z-0 pointer-events-none"
@@ -257,6 +267,11 @@
 
             <!-- Central Radial Radar Arena (Fills Space, No Scroll) -->
             <div id="joystickArena" class="relative w-full max-w-[340px] aspect-square mx-auto my-auto flex items-center justify-center select-none" style="touch-action: none;">
+                <!-- Volumetric Radar Sector Beam (Tracks Joystick Direction) -->
+                <div id="radarGlowBeam" class="absolute inset-1 rounded-full pointer-events-none opacity-0 transition-opacity duration-100 z-10"
+                     style="background: conic-gradient(from 337.5deg at 50% 50%, transparent 0deg, rgba(239, 68, 68, 0.45) 22.5deg, transparent 45deg); -webkit-mask-image: radial-gradient(circle at center, transparent 20%, black 70%); mask-image: radial-gradient(circle at center, transparent 20%, black 70%);">
+                </div>
+
                 <!-- Radar Visual Backgrounds (Imperial Red Theme) & Pie Chart Sectors -->
                 <div class="absolute inset-2 rounded-full border-2 border-red-900/30 pointer-events-none overflow-hidden flex items-center justify-center">
                     <!-- 8-Way Pie Chart Sector Dividers -->
@@ -319,11 +334,13 @@
             </div>
         </section>
 
-        <!-- Centered Version Tracker & Imperial ID Footer -->
+        <!-- Centered Version Tracker & Imperial ID Footer (Clickable to Hard Reload) -->
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
-            <span class="text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                SYS VER // <span class="text-red-400 font-bold">v3.3.0</span>
-            </span>
+            <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
+                <span>SYS VER //</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.4.2</span>
+                <span id="versionIcon" class="text-[9px] text-red-400 opacity-75">🔄</span>
+            </button>
         </div>
     </div>
 
@@ -348,6 +365,7 @@
         let voxSourceNode = null;
         let liveFilterDist = null;
         let liveGateGain = null;
+        let liveStreamDest = null;
         let voxAnimFrame = null;
 
         // Zero-Latency PCM Buffer System & Pre-Roll
@@ -360,6 +378,7 @@
         const authModal = document.getElementById('authModal');
         const activateCommsBtn = document.getElementById('activateCommsBtn');
         const authPromptText = document.getElementById('authPromptText');
+        const liveAudioSink = document.getElementById('liveAudioSink');
 
         const tabComlink = document.getElementById('tabComlink');
         const tabJoystick = document.getElementById('tabJoystick');
@@ -483,6 +502,11 @@
             if (audioContext.state === 'suspended') {
                 audioContext.resume();
             }
+            if ('audioSession' in navigator) {
+                try {
+                    navigator.audioSession.type = 'playback';
+                } catch(e) {}
+            }
         }
 
         // --- Distortion Curve Generator ---
@@ -498,14 +522,60 @@
             return curve;
         }
 
+        // --- WAV Blob Encoder (Routes Web Audio through native HTML5 Audio for Bluetooth) ---
+        function audioBufferToWavBlob(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const length = buffer.length;
+            const blockAlign = numChannels * 2;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = length * blockAlign;
+            const ab = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(ab);
+
+            function writeString(pos, str) {
+                for (let i = 0; i < str.length; i++) view.setUint8(pos + i, str.charCodeAt(i));
+            }
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true); // 16-bit
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            let offset = 44;
+            const channelData = [];
+            for (let c = 0; c < numChannels; c++) {
+                channelData.push(buffer.getChannelData(c));
+            }
+
+            for (let i = 0; i < length; i++) {
+                for (let c = 0; c < numChannels; c++) {
+                    let s = Math.max(-1, Math.min(1, channelData[c][i]));
+                    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                    offset += 2;
+                }
+            }
+            return new Blob([ab], { type: 'audio/wav' });
+        }
+
         // --- Microphone Authorization & Comms Pipeline ---
         async function setupCommsPipeline() {
             initAudio();
             try {
                 authPromptText.textContent = "REQUESTING COMM LINK PERMISSION...";
+                // echoCancellation: false prevents iOS from switching to telephony/earpiece mode!
                 mediaStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        echoCancellation: true,
+                        echoCancellation: false,
                         noiseSuppression: false,
                         autoGainControl: false
                     }
@@ -535,7 +605,7 @@
                 scriptProcessor.connect(silence);
                 silence.connect(audioContext.destination);
 
-                // 2. VOX Real-Time Channel Routing
+                // 2. VOX Real-Time Channel Routing & Bluetooth MediaStream Bridge
                 voxAnalyser = audioContext.createAnalyser();
                 voxAnalyser.fftSize = 512;
                 voxSourceNode.connect(voxAnalyser);
@@ -558,7 +628,16 @@
                 voxHpf.connect(voxLpf);
                 voxLpf.connect(liveFilterDist);
                 liveFilterDist.connect(liveGateGain);
+                
+                // Route to both default destination and HTML5 audio element for Bluetooth
+                liveStreamDest = audioContext.createMediaStreamDestination();
                 liveGateGain.connect(audioContext.destination);
+                liveGateGain.connect(liveStreamDest);
+
+                if (liveAudioSink) {
+                    liveAudioSink.srcObject = liveStreamDest.stream;
+                    liveAudioSink.play().catch(() => {});
+                }
 
                 isCommsReady = true;
                 authModal.style.display = 'none';
@@ -635,8 +714,66 @@
             }
 
             gainNode.connect(audioContext.destination);
+            if (liveStreamDest) {
+                gainNode.connect(liveStreamDest);
+            }
             noiseSource.start(now);
             return duration;
+        }
+
+        // --- Offline Burst Synthesizer for PTT Bluetooth Transmission ---
+        function renderBurstIntoOffline(ctx, type, time, burstMult, userLength) {
+            const isPopHiss = type === 'start' ? false : (Math.random() < 0.5);
+            const duration = isPopHiss ? (userLength + 0.1) : (type === 'start' ? 0.08 : 0.14);
+            const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noiseSource = ctx.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+            const gainNode = ctx.createGain();
+
+            if (isPopHiss) {
+                const hpf = ctx.createBiquadFilter();
+                hpf.type = 'highpass';
+                hpf.frequency.setValueAtTime(900, time);
+                hpf.Q.setValueAtTime(0.7, time);
+
+                const lpf = ctx.createBiquadFilter();
+                lpf.type = 'lowpass';
+                lpf.frequency.setValueAtTime(5000, time);
+                lpf.Q.setValueAtTime(0.7, time);
+
+                gainNode.gain.setValueAtTime(0.0001, time);
+                gainNode.gain.linearRampToValueAtTime(0.28 * burstMult, time + 0.004);
+                gainNode.gain.setValueAtTime(0.18 * burstMult, time + 0.015);
+                gainNode.gain.setValueAtTime(0.18 * burstMult, time + duration - 0.015);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+                noiseSource.connect(hpf);
+                hpf.connect(lpf);
+                lpf.connect(gainNode);
+            } else {
+                const bp = ctx.createBiquadFilter();
+                bp.type = 'bandpass';
+                bp.frequency.setValueAtTime(1800, time);
+                bp.Q.setValueAtTime(4.0, time);
+
+                const dist = ctx.createWaveShaper();
+                dist.curve = makeDistortionCurve(15);
+
+                gainNode.gain.setValueAtTime(0.0001, time);
+                gainNode.gain.linearRampToValueAtTime(0.42 * burstMult, time + 0.003);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+                noiseSource.connect(bp);
+                bp.connect(dist);
+                dist.connect(gainNode);
+            }
+
+            gainNode.connect(ctx.destination);
+            noiseSource.start(time);
         }
 
         // --- VOX Engine: Loop & Speech Detection ---
@@ -772,52 +909,91 @@
             playTransmittedAudio(audioBuffer);
         }
 
-        function playTransmittedAudio(audioBuffer) {
+        // --- Render Audio & Play Via HTML5 Audio (Direct to Bluetooth Speaker) ---
+        async function playTransmittedAudio(audioBuffer) {
             try {
                 updateStatus('TRANSMITTING...', 'bg-green-600');
+                const pitch = parseFloat(pitchSlider.value);
+                const distAmt = parseFloat(distSlider.value);
+                const burstMult = parseFloat(burstSlider.value);
+                const userLen = parseFloat(lengthSlider.value);
 
-                const burstDelay = playRadioBurst('start');
-                const startTime = audioContext.currentTime + (burstDelay * 0.7);
+                const voiceDuration = audioBuffer.duration / pitch;
+                const startBurstDur = 0.08;
+                const endBurstDur = userLen + 0.1;
+                const totalDuration = startBurstDur * 0.7 + voiceDuration + endBurstDur + 0.1;
 
-                const source = audioContext.createBufferSource();
+                const sampleRate = audioContext.sampleRate;
+                const OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+                const offlineCtx = new OfflineContextClass(1, Math.ceil(sampleRate * totalDuration), sampleRate);
+
+                // 1. Start Radio Click Burst
+                renderBurstIntoOffline(offlineCtx, 'start', 0, burstMult, userLen);
+
+                // 2. Modulated Voice
+                const voiceStart = startBurstDur * 0.7;
+                const source = offlineCtx.createBufferSource();
                 source.buffer = audioBuffer;
-                source.playbackRate.value = parseFloat(pitchSlider.value);
+                source.playbackRate.value = pitch;
 
-                const highpass = audioContext.createBiquadFilter();
+                const highpass = offlineCtx.createBiquadFilter();
                 highpass.type = 'highpass';
                 highpass.frequency.value = 450;
 
-                const lowpass = audioContext.createBiquadFilter();
+                const lowpass = offlineCtx.createBiquadFilter();
                 lowpass.type = 'lowpass';
                 lowpass.frequency.value = 2800;
 
-                const distortion = audioContext.createWaveShaper();
-                distortion.curve = makeDistortionCurve(parseFloat(distSlider.value));
+                const distortion = offlineCtx.createWaveShaper();
+                distortion.curve = makeDistortionCurve(distAmt);
 
-                const compressor = audioContext.createDynamicsCompressor();
+                const compressor = offlineCtx.createDynamicsCompressor();
                 compressor.threshold.value = -40;
                 compressor.knee.value = 0;
                 compressor.ratio.value = 16;
                 compressor.attack.value = 0.005;
                 compressor.release.value = 0.05;
 
-                const makeUpGain = audioContext.createGain();
+                const makeUpGain = offlineCtx.createGain();
                 makeUpGain.gain.value = 2.0;
 
                 source.connect(highpass);
                 highpass.connect(lowpass);
                 lowpass.connect(distortion);
                 distortion.connect(compressor);
-                
                 compressor.connect(makeUpGain);
-                makeUpGain.connect(audioContext.destination);
+                makeUpGain.connect(offlineCtx.destination);
 
-                source.start(startTime);
-                source.onended = () => {
-                    playRadioBurst('end');
+                source.start(voiceStart);
+
+                // 3. Ending Squelch Burst
+                const voiceEnd = voiceStart + voiceDuration;
+                renderBurstIntoOffline(offlineCtx, 'end', voiceEnd, burstMult, userLen);
+
+                // Render into WAV buffer
+                const renderedBuffer = await offlineCtx.startRendering();
+                const wavBlob = audioBufferToWavBlob(renderedBuffer);
+                const blobUrl = URL.createObjectURL(wavBlob);
+
+                // Play as native HTML5 Audio (Direct to Bluetooth!)
+                const pttPlayer = new Audio(blobUrl);
+                currentAudio = pttPlayer;
+
+                pttPlayer.onended = () => {
+                    URL.revokeObjectURL(blobUrl);
+                    currentAudio = null;
                     updateStatus('STANDBY', 'bg-emerald-500');
                     transmitBtn.disabled = false;
                 };
+
+                pttPlayer.onerror = () => {
+                    URL.revokeObjectURL(blobUrl);
+                    currentAudio = null;
+                    updateStatus('STANDBY', 'bg-emerald-500');
+                    transmitBtn.disabled = false;
+                };
+
+                await pttPlayer.play();
             } catch (err) {
                 console.error("Playback error:", err);
                 updateStatus('PLAYBACK ERR', 'bg-red-500');
@@ -900,6 +1076,7 @@
         const joystickArena = document.getElementById('joystickArena');
         const joystickPuck = document.getElementById('joystickPuck');
         const joyHud = document.getElementById('joyHud');
+        const radarGlowBeam = document.getElementById('radarGlowBeam');
 
         let activeJoystickCategory = 'halloween';
         let currentJoystickTracks = JOYSTICK_CONFIGS['halloween'];
@@ -978,6 +1155,12 @@
                 const angleFromNorth = (deg - 270 + 360) % 360;
                 const sectorIndex = Math.floor(((angleFromNorth + 22.5) % 360) / 45);
 
+                // Volumetric beam tracks thumb angle exactly
+                if (radarGlowBeam) {
+                    radarGlowBeam.style.opacity = '1';
+                    radarGlowBeam.style.transform = `rotate(${angleFromNorth}deg)`;
+                }
+
                 const track = currentJoystickTracks.find(t => t.sector === sectorIndex);
 
                 if (track) {
@@ -996,6 +1179,9 @@
                     }
                 }
             } else {
+                if (radarGlowBeam) {
+                    radarGlowBeam.style.opacity = '0';
+                }
                 if (activeTargetIndex !== null) {
                     activeTargetIndex = null;
                     clearAllPodHighlights();
@@ -1183,6 +1369,9 @@
             if (!isJoystickActive) return;
             isJoystickActive = false;
             joystickPuck.style.transform = 'translate(0px, 0px)';
+            if (radarGlowBeam) {
+                radarGlowBeam.style.opacity = '0';
+            }
 
             if (activeTargetIndex !== null) {
                 const targetedTrack = currentJoystickTracks.find(t => t.sector === activeTargetIndex);
@@ -1202,6 +1391,25 @@
 
         joystickArena.addEventListener('pointerup', releaseJoystick);
         joystickArena.addEventListener('pointercancel', releaseJoystick);
+
+        // --- Interactive Version Tracker (Tap to Force Refresh & Update) ---
+        const versionReloadBtn = document.getElementById('versionReloadBtn');
+        const versionText = document.getElementById('versionText');
+        const versionIcon = document.getElementById('versionIcon');
+
+        if (versionReloadBtn) {
+            versionReloadBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (versionText) versionText.textContent = "CHECKING...";
+                if (versionIcon) versionIcon.classList.add('animate-spin');
+
+                setTimeout(() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('v', Date.now().toString());
+                    window.location.replace(url.toString());
+                }, 200);
+            });
+        }
 
         // --- Reset Defaults Handler ---
         resetBtn.addEventListener('click', () => {
