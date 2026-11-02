@@ -156,27 +156,27 @@
                 <div>
                     <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adjusts the pitch of your captured voice. Set below 1.0 for an authoritative, deeper trooper vocal tone.">
                         <span class="cursor-help flex items-center gap-1 font-mono">Voice Pitch <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                        <span id="valPitch" class="font-mono text-red-400">0.85</span>
+                        <span id="valPitch" class="font-mono text-red-400">0.95</span>
                     </div>
-                    <input type="range" id="pitchSlider" min="0.6" max="1.4" step="0.05" value="0.85" class="styled-slider">
+                    <input type="range" id="pitchSlider" min="0.6" max="1.4" step="0.05" value="0.95" class="styled-slider">
                 </div>
 
                 <!-- Distortion Level -->
                 <div>
                     <div class="flex justify-between text-xs text-gray-400 mb-1" title="Adds analog radio harmonics and clipping to give your voice a gritty, in-helmet sound.">
                         <span class="cursor-help flex items-center gap-1 font-mono">Distortion (Clipping) <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                        <span id="valDist" class="font-mono text-red-400">30</span>
+                        <span id="valDist" class="font-mono text-red-400">10</span>
                     </div>
-                    <input type="range" id="distSlider" min="0" max="100" step="5" value="30" class="styled-slider">
+                    <input type="range" id="distSlider" min="0" max="100" step="5" value="10" class="styled-slider">
                 </div>
 
                 <!-- Static Squelch Burst Length -->
                 <div>
                     <div class="flex justify-between text-xs text-gray-400 mb-1" title="Sets the duration of the radio pop and squelch noise played before and after speaking.">
                         <span class="cursor-help flex items-center gap-1 font-mono">Burst Length <span class="text-[10px] text-red-500/70">ⓘ</span></span>
-                        <span id="valLength" class="font-mono text-red-400">0.30s</span>
+                        <span id="valLength" class="font-mono text-red-400">0.40s</span>
                     </div>
-                    <input type="range" id="lengthSlider" min="0.1" max="0.8" step="0.05" value="0.3" class="styled-slider">
+                    <input type="range" id="lengthSlider" min="0.1" max="0.8" step="0.05" value="0.4" class="styled-slider">
                 </div>
 
                 <!-- Radio Burst Volume -->
@@ -196,7 +196,7 @@
                 <!-- Centered Version Tracker -->
                 <div class="mt-3 text-center">
                     <span class="text-[11px] font-mono tracking-widest text-red-500/60 uppercase">
-                        SYS VER // <span class="text-red-400 font-bold">v1.3.1</span>
+                        SYS VER // <span class="text-red-400 font-bold">v1.4.0</span>
                     </span>
                 </div>
             </div>
@@ -219,8 +219,9 @@
             </div>
 
             <!-- Category Filter Chips for Quick Glove Tapping -->
-            <div class="grid grid-cols-4 gap-1.5 mb-4 text-[11px] font-bold orbitron">
+            <div class="grid grid-cols-5 gap-1 sm:gap-1.5 mb-4 text-[10px] sm:text-xs font-bold orbitron">
                 <button id="filterAll" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-red-600 text-white border border-red-500 shadow-sm transition-all text-center">ALL</button>
+                <button id="filterGuests" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-orange-400 border border-orange-900/50 hover:border-orange-500 transition-all text-center">GUESTS</button>
                 <button id="filterDroids" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-amber-400 border border-amber-900/50 hover:border-amber-500 transition-all text-center">DROIDS</button>
                 <button id="filterCombat" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-red-400 border border-red-900/50 hover:border-red-500 transition-all text-center">COMBAT</button>
                 <button id="filterPatrol" type="button" class="cat-filter-btn py-2 px-1 rounded-lg bg-black/60 text-blue-400 border border-blue-900/50 hover:border-blue-500 transition-all text-center">PATROL</button>
@@ -602,17 +603,30 @@
         // --- Soundboard Engine (Categorized & Armor/Glove Optimized) ---
         const SOUNDBOARD_CATEGORIES = [
             {
+                id: "halloween",
+                name: "🎃 HALLOWEEN / GUEST PROTOCOLS",
+                badgeClass: "bg-orange-950/50 border-orange-700/70 text-orange-400",
+                buttonHover: "hover:border-orange-500 active:bg-orange-950/40",
+                tracks: [
+                    { file: "There's no one here.mp3", label: "1. There's no one here" },
+                    { file: "Let me see your ID.mp3", label: "2. Let me see your ID" },
+                    { file: "We don't need to see ID.mp3", label: "3. We don't need to see ID" },
+                    { file: "Move along, move along.mp3", label: "4. Move along, move along" },
+                    { file: "Look there!.mp3", label: "5. Look there!" },
+                    { file: "Follow me.mp3", label: "6. Follow me" },
+                    { file: "You stand guard.mp3", label: "7. You stand guard" },
+                    { file: "Alright men, load your weapons.mp3", label: "8. Alright men, load your weapons" }
+                ]
+            },
+            {
                 id: "droids",
-                name: "DROID INSPECTION & ID",
+                name: "DROID INSPECTION & RECON",
                 badgeClass: "bg-amber-950/50 border-amber-800/60 text-amber-400",
                 buttonHover: "hover:border-amber-500 active:bg-amber-950/40",
                 tracks: [
                     { file: "Look sir! Droids.mp3", label: "Look sir! Droids" },
                     { file: "How long have you had these droids.mp3", label: "How long have you had these droids?" },
-                    { file: "Let me see your ID.mp3", label: "Let me see your ID" },
-                    { file: "We don't need to see ID.mp3", label: "We don't need to see ID" },
-                    { file: "These aren't droids we're looking for.mp3", label: "These aren't the droids we're looking for" },
-                    { file: "Move along, move along.mp3", label: "Move along, move along" }
+                    { file: "These aren't droids we're looking for.mp3", label: "These aren't the droids we're looking for" }
                 ]
             },
             {
@@ -623,22 +637,17 @@
                 tracks: [
                     { file: "Stop that ship! Blast them.mp3", label: "Stop that ship! Blast them!" },
                     { file: "There's one. Set for stun.mp3", label: "There's one. Set for stun!" },
-                    { file: "It's them! Blast them.mp3", label: "It's them! Blast them!" },
-                    { file: "Alright men, load your weapons.mp3", label: "Alright men, load your weapons" },
-                    { file: "Look there!.mp3", label: "Look there!" }
+                    { file: "It's them! Blast them.mp3", label: "It's them! Blast them!" }
                 ]
             },
             {
                 id: "patrol",
-                name: "PATROL & GUARD ORDERS",
+                name: "PATROL & GUARD CHATTER",
                 badgeClass: "bg-blue-950/50 border-blue-800/60 text-blue-400",
                 buttonHover: "hover:border-blue-500 active:bg-blue-950/40",
                 tracks: [
                     { file: "Give me regular reports please.mp3", label: "Give me regular reports please" },
                     { file: "Maybe its another drill.mp3", label: "Maybe it's another drill" },
-                    { file: "There's no one here.mp3", label: "There's no one here" },
-                    { file: "You stand guard.mp3", label: "You stand guard" },
-                    { file: "Follow me.mp3", label: "Follow me" },
                     { file: "You know whats going on.mp3", label: "You know what's going on" },
                     { file: "Alright.mp3", label: "Alright" }
                 ]
@@ -662,6 +671,7 @@
         function setupFilters() {
             const filterMap = [
                 { id: 'filterAll', val: 'all', activeClass: 'bg-red-600 text-white border-red-500' },
+                { id: 'filterGuests', val: 'halloween', activeClass: 'bg-orange-600 text-white border-orange-500' },
                 { id: 'filterDroids', val: 'droids', activeClass: 'bg-amber-600 text-white border-amber-500' },
                 { id: 'filterCombat', val: 'combat', activeClass: 'bg-red-600 text-white border-red-500' },
                 { id: 'filterPatrol', val: 'patrol', activeClass: 'bg-blue-600 text-white border-blue-500' }
@@ -696,38 +706,38 @@
                 }
 
                 const catWrapper = document.createElement('div');
-                catWrapper.className = "space-y-2";
+                catWrapper.className = "space-y-2.5";
 
-                // Section Banner
-                const header = document.createElement('div');
-                header.className = `px-3 py-1.5 rounded-lg border text-[11px] font-mono tracking-widest font-bold flex items-center justify-between ${category.badgeClass}`;
-                header.innerHTML = `
-                    <span>// ${category.name}</span>
-                    <span>${category.tracks.length} CLIPS</span>
-                `;
-                catWrapper.appendChild(header);
-
-                // Big Glove-Sized Buttons Container
-                const btnList = document.createElement('div');
-                btnList.className = "grid grid-cols-1 gap-2.5";
+                // Minimalist Section Divider (shown when "ALL" is selected to avoid visual clutter)
+                if (activeCategoryFilter === 'all') {
+                    const divider = document.createElement('div');
+                    divider.className = `flex items-center gap-2 pt-2 pb-0.5 text-xs font-mono font-bold tracking-widest ${category.badgeColor}`;
+                    divider.innerHTML = `
+                        <span class="h-px bg-zinc-800 flex-1"></span>
+                        <span>// ${category.name} (${category.tracks.length})</span>
+                        <span class="h-px bg-zinc-800 flex-1"></span>
+                    `;
+                    catWrapper.appendChild(divider);
+                }
 
                 category.tracks.forEach((track) => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    // High-contrast, large touch targets (~64px height min)
-                    btn.className = `w-full min-h-[64px] text-left p-4 rounded-xl bg-[#18191d] border-2 border-red-950/70 ${category.buttonHover} transition-all flex items-center justify-between group active:scale-[0.98] cursor-pointer shadow-md`;
+                    // High-contrast, glove-friendly cards: 72px min height, 6px colored left bar, 16px+ bold text
+                    btn.className = `w-full min-h-[72px] text-left p-4 rounded-xl bg-[#14151a] border-2 border-zinc-800 border-l-[6px] ${category.accentBorder} transition-all flex items-center justify-between group active:scale-[0.98] cursor-pointer shadow-lg`;
                     btn.innerHTML = `
-                        <span class="text-sm sm:text-base font-bold text-white tracking-wide pr-3 leading-snug">${track.label}</span>
-                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-black/60 border border-red-900/40 shrink-0">
-                            <span class="indicator text-red-500 font-bold text-lg group-hover:text-red-400">▶</span>
+                        <div class="pr-3 leading-snug">
+                            <span class="text-base sm:text-lg font-black text-white tracking-wide block">${track.label}</span>
+                        </div>
+                        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-black border-2 border-zinc-700 shrink-0 group-hover:border-zinc-400 transition-colors shadow-inner">
+                            <span class="indicator text-red-500 font-bold text-xl group-hover:text-red-400">▶</span>
                         </div>
                     `;
 
                     btn.addEventListener('click', () => playTrack(track.file, btn));
-                    btnList.appendChild(btn);
+                    catWrapper.appendChild(btn);
                 });
 
-                catWrapper.appendChild(btnList);
                 grid.appendChild(catWrapper);
             });
         }
@@ -740,7 +750,7 @@
                 currentAudio = null;
                 if (activeSoundBtn) {
                     activeSoundBtn.querySelector('.indicator').textContent = '▶';
-                    activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/60');
+                    activeSoundBtn.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
                 }
             }
 
@@ -761,12 +771,12 @@
                 currentAudio = audio;
                 activeSoundBtn = buttonElem;
                 buttonElem.querySelector('.indicator').textContent = '■';
-                buttonElem.classList.add('border-red-500', 'bg-red-950/60');
+                buttonElem.classList.add('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
                 document.getElementById('boardStatus').textContent = 'PLAYING';
 
                 audio.onended = () => {
                     buttonElem.querySelector('.indicator').textContent = '▶';
-                    buttonElem.classList.remove('border-red-500', 'bg-red-950/60');
+                    buttonElem.classList.remove('border-red-500', 'bg-red-950/70', 'shadow-[0_0_20px_rgba(239,68,68,0.4)]');
                     currentAudio = null;
                     activeSoundBtn = null;
                     document.getElementById('boardStatus').textContent = 'READY';
@@ -782,12 +792,12 @@
 
         // --- Reset Defaults Handler ---
         resetBtn.addEventListener('click', () => {
-            distSlider.value = 30;
-            valDist.textContent = '30';
-            pitchSlider.value = 0.85;
-            valPitch.textContent = '0.85';
-            lengthSlider.value = 0.3;
-            valLength.textContent = '0.30s';
+            distSlider.value = 10;
+            valDist.textContent = '10';
+            pitchSlider.value = 0.95;
+            valPitch.textContent = '0.95';
+            lengthSlider.value = 0.4;
+            valLength.textContent = '0.40s';
             burstSlider.value = 0.8;
             valBurst.textContent = '80%';
             comlinkVolSlider.value = 0.4;
