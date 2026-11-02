@@ -133,17 +133,17 @@
 
             <!-- Mode Navigation Switcher (2 Tabs) -->
             <div class="grid grid-cols-2 gap-1.5 p-1 bg-black/60 rounded-xl border border-red-900/40 mb-3 relative z-20">
-                <button id="tabComlink" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
+                <button id="tabComlink" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
                     COMLINK
                 </button>
-                <button id="tabJoystick" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]">
+                <button id="tabJoystick" type="button" class="tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20">
                     SOUNDBOARD
                 </button>
             </div>
         </div>
 
         <!-- ================= MODE 1: COMLINK ================= -->
-        <section id="viewComlink" style="display: none;" class="flex-1 min-h-0 flex-col overflow-y-auto touch-scroll pr-1 pb-4">
+        <section id="viewComlink" style="display: flex;" class="flex-1 min-h-0 flex-col overflow-y-auto touch-scroll pr-1 pb-4">
             <!-- PTT vs VOX Mode Switcher -->
             <div class="grid grid-cols-2 gap-1 mb-2 p-1 bg-black/60 rounded-xl border border-red-900/40 shrink-0">
                 <button id="comModePtt" type="button" class="tab-btn py-1.5 px-2 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]">
@@ -192,15 +192,6 @@
                         <span id="valLength" class="font-mono text-red-400">0.40s</span>
                     </div>
                     <input type="range" id="lengthSlider" min="0.1" max="0.8" step="0.05" value="0.4" class="styled-slider">
-                </div>
-
-                <!-- Radio Burst Volume -->
-                <div>
-                    <div class="flex justify-between text-xs text-gray-400 mb-1" title="Controls how loudly the transmission clicks and squelches sound.">
-                        <span class="font-mono">Burst Volume</span>
-                        <span id="valBurst" class="font-mono text-red-400">80%</span>
-                    </div>
-                    <input type="range" id="burstSlider" min="0" max="1" step="0.05" value="0.8" class="styled-slider">
                 </div>
 
                 <!-- Live Squelch MP3 Diagnostics Status -->
@@ -263,7 +254,7 @@
         </section>
 
         <!-- ================= MODE 2: JOYSTICK (FULL SCREEN RADIAL RADAR) ================= -->
-        <section id="viewJoystick" style="display: flex;" class="flex-1 flex-col justify-between overflow-hidden select-none">
+        <section id="viewJoystick" style="display: none;" class="flex-1 flex-col justify-between overflow-hidden select-none">
             <!-- Soundboard Categories -->
             <div class="grid grid-cols-3 gap-1 mb-2 text-[10px] font-bold orbitron shrink-0">
                 <button id="joyCatHalloween" type="button" class="tab-btn py-2 px-1 rounded-lg bg-orange-600 text-white border border-orange-500 text-center shadow-[0_0_10px_rgba(234,88,12,0.4)] transition-all">HALLOWEEN</button>
@@ -349,7 +340,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.7.1</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.8.0</span>
             </button>
         </div>
     </div>
@@ -410,14 +401,12 @@
         const distSlider = document.getElementById('distSlider');
         const pitchSlider = document.getElementById('pitchSlider');
         const lengthSlider = document.getElementById('lengthSlider');
-        const burstSlider = document.getElementById('burstSlider');
         const voxSensSlider = document.getElementById('voxSensSlider');
         const voxHoldSlider = document.getElementById('voxHoldSlider');
 
         const valDist = document.getElementById('valDist');
         const valPitch = document.getElementById('valPitch');
         const valLength = document.getElementById('valLength');
-        const valBurst = document.getElementById('valBurst');
         const valVoxSens = document.getElementById('valVoxSens');
         const valVoxHold = document.getElementById('valVoxHold');
 
@@ -1057,8 +1046,8 @@
 
                 const pitch = parseFloat(pitchSlider.value);
                 const distAmt = parseFloat(distSlider.value);
-                const burstMult = parseFloat(burstSlider.value);
                 const userLen = parseFloat(lengthSlider.value);
+                const burstMult = 1.0; // Fixed full volume for all bursts
 
                 // Start squelch: randomize between pop.mp3 and pop2.mp3 (with on-demand load)
                 const startPool = ['pop.mp3', 'pop2.mp3'];
@@ -1068,9 +1057,13 @@
                     startBuf = await loadSquelchBuffer(chosenStartFile);
                 }
 
-                // End squelch: randomize between hiss.mp3, pop.mp3, and pop2.mp3 (with on-demand load)
-                const endPool = ['hiss.mp3', 'pop.mp3', 'pop2.mp3'];
-                const chosenEndFile = endPool[Math.floor(Math.random() * endPool.length)];
+                // End squelch: hiss.mp3 plays 75% of the time, pop2.mp3/pop.mp3 for the rest
+                let chosenEndFile;
+                if (Math.random() < 0.75) {
+                    chosenEndFile = 'hiss.mp3';
+                } else {
+                    chosenEndFile = Math.random() < 0.5 ? 'pop2.mp3' : 'pop.mp3';
+                }
                 let endBuf = squelchBuffers[chosenEndFile];
                 if (!endBuf) {
                     endBuf = await loadSquelchBuffer(chosenEndFile);
@@ -1078,7 +1071,8 @@
 
                 const startBurstDur = startBuf ? startBuf.duration : 0.08;
                 const voiceDuration = audioBuffer.duration / pitch;
-                const voiceStart = startBuf ? Math.max(0.04, startBurstDur * 0.85) : (startBurstDur * 0.7);
+                // Immediate response: start voice right as initial pop transient hits (~0.06s), no trimming of recorded audio
+                const voiceStart = startBuf ? Math.min(0.06, startBurstDur) : 0.06;
                 const voiceEnd = voiceStart + voiceDuration;
                 const endBurstDur = endBuf ? endBuf.duration : (userLen + 0.1);
                 const totalDuration = voiceEnd + endBurstDur + 0.15;
@@ -1087,12 +1081,12 @@
                 const OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
                 const offlineCtx = new OfflineContextClass(1, Math.ceil(sampleRate * totalDuration), sampleRate);
 
-                // 1. Start Radio Click Burst (Custom MP3 or Synthesized Fallback)
+                // 1. Start Radio Click Burst (Custom MP3 or Synthesized Fallback) - Always Full Volume (1.0)
                 if (startBuf) {
                     const sSource = offlineCtx.createBufferSource();
                     sSource.buffer = startBuf;
                     const sGain = offlineCtx.createGain();
-                    sGain.gain.setValueAtTime(burstMult * 1.5, 0); // 1.5x makeup gain for punchy presence
+                    sGain.gain.setValueAtTime(1.0, 0);
                     sSource.connect(sGain);
                     sGain.connect(offlineCtx.destination);
                     sSource.start(0);
@@ -1135,12 +1129,12 @@
 
                 source.start(voiceStart);
 
-                // 3. Ending Squelch Burst (Custom MP3 or Synthesized Fallback)
+                // 3. Ending Squelch Burst (Custom MP3 or Synthesized Fallback) - Always Full Volume (1.0)
                 if (endBuf) {
                     const eSource = offlineCtx.createBufferSource();
                     eSource.buffer = endBuf;
                     const eGain = offlineCtx.createGain();
-                    eGain.gain.setValueAtTime(burstMult * 1.5, voiceEnd); // 1.5x makeup gain for punchy presence
+                    eGain.gain.setValueAtTime(1.0, voiceEnd);
                     eSource.connect(eGain);
                     eGain.connect(offlineCtx.destination);
                     eSource.start(voiceEnd);
@@ -1218,9 +1212,6 @@
         });
         lengthSlider.addEventListener('input', (e) => {
             valLength.textContent = `${parseFloat(e.target.value).toFixed(2)}s`;
-        });
-        burstSlider.addEventListener('input', (e) => {
-            valBurst.textContent = `${Math.round(e.target.value * 100)}%`;
         });
         voxSensSlider.addEventListener('input', (e) => {
             valVoxSens.textContent = e.target.value;
@@ -1617,17 +1608,16 @@
             valPitch.textContent = '0.85';
             lengthSlider.value = 0.4;
             valLength.textContent = '0.40s';
-            burstSlider.value = 0.8;
-            valBurst.textContent = '80%';
             voxSensSlider.value = 25;
             valVoxSens.textContent = '25';
             voxHoldSlider.value = 0.85;
             valVoxHold.textContent = '0.85s';
         });
 
-        // Initialize joystick pods on load
+        // Initialize joystick pods & default comlink view on load
         window.addEventListener('DOMContentLoaded', () => {
             loadJoystickCategory('halloween');
+            switchTab('comlink');
         });
     </script>
 </body>
