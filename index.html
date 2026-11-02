@@ -122,7 +122,7 @@
                     INITIALIZE COMMS UNIT
                 </button>
                 <button id="bypassAuthBtn" type="button" class="tab-btn w-full py-2.5 px-4 bg-black/60 hover:bg-red-950/40 text-gray-400 hover:text-red-300 border border-red-900/40 font-mono text-[10px] sm:text-xs tracking-wider rounded-xl transition-all">
-                    BYPASS TO SOUNDBOARD (NO MIC)
+                    CONTINUE TO SOUNDBOARD (NO MIC)
                 </button>
             </div>
         </div>
@@ -134,10 +134,10 @@
             <!-- Top Status Bar -->
             <div class="flex items-center justify-between border-b border-red-900/30 pb-2 mb-2 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/80">
                 <span>UNIT // TK-714</span>
-                <span class="flex items-center gap-1.5">
-                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    ONLINE
-                </span>
+                <button id="topStatusBtn" type="button" class="tab-btn flex items-center gap-1.5 transition-all outline-none">
+                    <span id="topStatusDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="topStatusLabel" class="text-gray-300">ONLINE</span>
+                </button>
             </div>
 
             <!-- Mode Navigation Switcher (2 Tabs) -->
@@ -349,7 +349,7 @@
         <div class="pt-2 border-t border-red-900/30 text-center shrink-0">
             <button id="versionReloadBtn" type="button" title="Tap to refresh and check for updates" class="tab-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 hover:bg-red-950/40 border border-red-900/40 hover:border-red-500/60 transition-all active:scale-95 text-[10px] sm:text-[11px] font-mono tracking-widest text-red-500/70 hover:text-red-300 uppercase cursor-pointer">
                 <span>SYS VER //</span>
-                <span id="versionText" class="text-red-400 font-bold">v3.8.0</span>
+                <span id="versionText" class="text-red-400 font-bold">v3.8.1</span>
             </button>
         </div>
     </div>
@@ -401,6 +401,9 @@
         const bypassAuthBtn = document.getElementById('bypassAuthBtn');
         const authPromptText = document.getElementById('authPromptText');
         const transmissionPlayer = document.getElementById('transmissionPlayer');
+        const topStatusBtn = document.getElementById('topStatusBtn');
+        const topStatusDot = document.getElementById('topStatusDot');
+        const topStatusLabel = document.getElementById('topStatusLabel');
 
         const tabComlink = document.getElementById('tabComlink');
         const tabJoystick = document.getElementById('tabJoystick');
@@ -438,8 +441,29 @@
         const settingsPanel = document.getElementById('settingsPanel');
         const settingsToggleIcon = document.getElementById('settingsToggleIcon');
 
+        // --- Centralized Modal Visibility Management ---
+        function showAuthModal() {
+            if (authModal) {
+                authModal.style.display = 'flex';
+                authModal.classList.remove('hidden');
+            }
+        }
+
+        function hideAuthModal() {
+            if (authModal) {
+                authModal.style.display = 'none';
+                authModal.classList.add('hidden');
+            }
+        }
+
         // --- Single Source of Truth for Transmit / VOX Button Text ---
         function updateComlinkButtonUI() {
+            if (!isCommsReady) {
+                transmitBtnTitle.textContent = "INITIALIZE";
+                transmitBtnSub.textContent = "TAP TO CONNECT MIC";
+                return;
+            }
+
             if (comlinkMode === 'ptt') {
                 if (isRecording) {
                     transmitBtnTitle.textContent = "RECORDING";
@@ -513,7 +537,13 @@
                 if (t.id === mode) {
                     t.tab.className = "tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]";
                     t.view.style.display = t.display;
-                    if (t.id === 'comlink') updateComlinkButtonUI();
+                    if (t.id === 'comlink') {
+                        updateComlinkButtonUI();
+                        // If user returns to Comlink without mic authorization, prompt to initialize
+                        if (!isCommsReady) {
+                            showAuthModal();
+                        }
+                    }
                 } else {
                     t.tab.className = "tab-btn py-2 px-1 rounded-lg orbitron text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-150 text-gray-400 hover:text-red-400 hover:bg-red-950/20";
                     t.view.style.display = 'none';
@@ -523,10 +553,6 @@
         }
 
         function bindTab(btn, mode) {
-            btn.addEventListener('pointerup', (e) => {
-                e.preventDefault();
-                switchTab(mode);
-            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 switchTab(mode);
@@ -540,6 +566,29 @@
         function updateStatus(text, bgClass) {
             if (statusText) statusText.textContent = text;
             if (statusLight) statusLight.className = `w-2.5 h-2.5 rounded-full transition-colors duration-300 ${bgClass}`;
+            
+            // Sync Top Status Bar
+            if (topStatusDot && topStatusLabel) {
+                if (isCommsReady) {
+                    topStatusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                    topStatusLabel.textContent = "ONLINE";
+                    topStatusLabel.className = "text-gray-300";
+                } else {
+                    topStatusDot.className = "inline-block w-2 h-2 rounded-full bg-yellow-500";
+                    topStatusLabel.textContent = "MIC OFFLINE (CONNECT)";
+                    topStatusLabel.className = "text-yellow-400 underline font-bold cursor-pointer";
+                }
+            }
+        }
+
+        // Tap top status indicator to re-open initialization modal if offline
+        if (topStatusBtn) {
+            topStatusBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!isCommsReady) {
+                    showAuthModal();
+                }
+            });
         }
 
         // --- Resample and Normalize Decoded Audio to Mono (Eliminates WebKit OfflineContext Crashes) ---
@@ -794,8 +843,9 @@
                 voxSourceNode.connect(voxAnalyser);
 
                 isCommsReady = true;
-                authModal.style.display = 'none';
+                hideAuthModal();
                 updateStatus('STANDBY', 'bg-emerald-500');
+                updateComlinkButtonUI();
             } catch (err) {
                 console.error("Mic authorization error:", err);
                 activateCommsBtn.disabled = false;
@@ -814,9 +864,10 @@
                 e.preventDefault();
                 initAudio();
                 primeAudioPlayer();
-                authModal.style.display = 'none';
+                hideAuthModal();
                 switchTab('joystick');
                 updateStatus('MIC OFFLINE', 'bg-yellow-600');
+                updateComlinkButtonUI();
             });
         }
 
@@ -1198,6 +1249,11 @@
         // --- Transmit Button Touch Listeners (Mode Aware) ---
         transmitBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            if (!isCommsReady) {
+                showAuthModal();
+                return;
+            }
+
             primeAudioPlayer();
             if (comlinkMode === 'ptt') {
                 startRecording();
@@ -1212,7 +1268,7 @@
 
         ['pointerup', 'pointercancel', 'mouseleave'].forEach(evt => {
             transmitBtn.addEventListener(evt, (e) => {
-                if (comlinkMode === 'ptt' && isRecording) {
+                if (isCommsReady && comlinkMode === 'ptt' && isRecording) {
                     e.preventDefault();
                     stopRecording();
                 }
